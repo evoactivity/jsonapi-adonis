@@ -2,8 +2,7 @@
 
 ## The `jsonApi` context helper
 
-Everything hangs off the `jsonApi` context property, installed by the provider. Destructure
-it as `{ jsonApi }: HttpContext` or use `ctx.jsonApi`, whichever you prefer:
+Everything hangs off the `jsonApi` context property, installed by the provider. Destructure it as `{ jsonApi }: HttpContext` or use `ctx.jsonApi`, whichever you prefer:
 
 | Member                                     | What it does                                                                             |
 | ------------------------------------------ | ---------------------------------------------------------------------------------------- |
@@ -20,10 +19,7 @@ it as `{ jsonApi }: HttpContext` or use `ctx.jsonApi`, whichever you prefer:
 | `handlesErrors()`                          | Whether this request's errors should render as JSON:API documents                        |
 | `links`                                    | The request's `LinkBuilder` (rarely needed directly)                                     |
 
-Lower-level building blocks (`DocumentBuilder`, `JsonApiRegistry`, `parseQueryParams`,
-`deserializeResourceDocument`, `toErrorDocument`, …) are all exported from `jsonapi-adonis`
-if you need to assemble custom behavior. See
-[Low-level building blocks](./low-level.md) for how to use them outside a request.
+Lower-level building blocks (`DocumentBuilder`, `JsonApiRegistry`, `parseQueryParams`, `deserializeResourceDocument`, `toErrorDocument`, …) are all exported from `jsonapi-adonis` if you need to assemble custom behavior. See [Low-level building blocks](./low-level.md) for how to use them outside a request.
 
 ## Configuration
 
@@ -61,25 +57,12 @@ node ace make:jsonapi:controller comment                 # controllers only, no 
 node ace make:jsonapi:controller comment -r --routes     #   class (auto-derived resource)
 ```
 
-For `article`, `make:jsonapi:resource` creates `app/resources/article_resource.ts` (type
-`articles`, with commented-out attribute and filter customization hooks) and
-`app/controllers/articles_controller.ts` with index/show/store/update/destroy, ready to run.
-With `--relationships` it also creates `article_relationships_controller.ts`, serving the
-`/relationships/:relation` endpoints.
+For `article`, `make:jsonapi:resource` creates `app/resources/article_resource.ts` (type `articles`, with commented-out attribute and filter customization hooks) and `app/controllers/articles_controller.ts` with index/show/store/update/destroy, ready to run. With `--relationships` it also creates `article_relationships_controller.ts`, serving the `/relationships/:relation` endpoints.
 
-Use `make:jsonapi:controller` when the auto-derived resource is all you need. It generates
-the controllers without a resource class.
+Use `make:jsonapi:controller` when the auto-derived resource is all you need. It generates the controllers without a resource class.
 
-With `--routes`, the command appends a ready-made `router.jsonApiResource(...)` group to
-`start/routes.ts`, skipping if the type is already registered. Move it inside your versioned
-API group if you have one. Without the flag, the registration snippets are printed for you
-to paste.
+With `--routes`, the command appends a ready-made `router.jsonApiResource(...)` group to `start/routes.ts`, skipping if the type is already registered. Move it inside your versioned API group if you have one. Without the flag, the registration snippets are printed for you to paste.
 
 ## Roadmap
 
-- **[Atomic Operations](https://jsonapi.org/ext/atomic/)**, the official JSON:API extension
-  for performing multiple writes in a single request, applied in one transaction. Either
-  every operation succeeds or none do. This is also the planned answer for the bulk-write
-  cases individual endpoints handle awkwardly, like clearing or re-parenting a `hasMany`
-  relationship (rejected with `403` today), which decomposes cleanly into explicit
-  per-child operations inside one atomic request.
+- **[Atomic Operations](https://jsonapi.org/ext/atomic/)**, the official JSON:API extension for performing multiple writes in a single request, applied in one transaction. Either every operation succeeds or none do. This is also the planned answer for the bulk-write cases individual endpoints handle awkwardly, like clearing or re-parenting a `hasMany` relationship (rejected with `403` today), which decomposes cleanly into explicit per-child operations inside one atomic request.

@@ -1,7 +1,6 @@
 # Writing data
 
-Creating, updating and deleting resources from JSON:API request documents, and the
-relationship endpoints.
+Creating, updating and deleting resources from JSON:API request documents, and the relationship endpoints.
 
 ## Resource writes
 
@@ -57,16 +56,11 @@ The deserializer enforces the spec's error semantics for you:
 | Client sends an `id` on creation (unless `allowClientIds: true`)            | `403`         |
 | A referenced related resource doesn't exist                                 | `404`         |
 
-Attribute names are mapped back from their serialized names to model property names.
-Unknown attributes are dropped, and your validator remains the gatekeeper.
+Attribute names are mapped back from their serialized names to model property names. Unknown attributes are dropped, and your validator remains the gatekeeper.
 
 ## Relationship endpoints
 
-The spec defines URLs for reading and editing a relationship itself, without touching the
-resources on either end. Editing linkage through these URLs sends deltas rather than
-snapshots, which protects concurrent editors from overwriting each other; the
-[links guide](./links.md) walks through a lost-update example. `jsonApiResource` registers
-the endpoints when you provide a `relationships` controller:
+The spec defines URLs for reading and editing a relationship itself, without touching the resources on either end. Editing linkage through these URLs sends deltas rather than snapshots, which protects concurrent editors from overwriting each other; the [links guide](./links.md) walks through a lost-update example. `jsonApiResource` registers the endpoints when you provide a `relationships` controller:
 
 | Route                                   | Meaning                                |
 | --------------------------------------- | -------------------------------------- |
@@ -92,11 +86,7 @@ export default class ArticleRelationshipsController {
 }
 ```
 
-To-one relationships accept `PATCH` only (a `405` otherwise). For `hasMany`, full
-replacement and removal are rejected with `403`. The spec explicitly allows a server to
-refuse those, and the natural write path for a hasMany is the child's own belongsTo.
-`manyToMany` supports everything. `hasManyThrough` relationships are derived, and all writes
-through them are rejected.
+To-one relationships accept `PATCH` only (a `405` otherwise). For `hasMany`, full replacement and removal are rejected with `403`. The spec explicitly allows a server to refuse those, and the natural write path for a hasMany is the child's own belongsTo. `manyToMany` supports everything. `hasManyThrough` relationships are derived, and all writes through them are rejected.
 
 ---
 

@@ -1,11 +1,8 @@
 # Blog example
 
-A complete AdonisJS application demonstrating [jsonapi-adonis](../../README.md): articles,
-comments, tags and users, served as a JSON:API under both `/api/v1` and `/api/v2` (to show
-versioned link generation).
+A complete AdonisJS application demonstrating [jsonapi-adonis](../../README.md): articles, comments, tags and users, served as a JSON:API under both `/api/v1` and `/api/v2` (to show versioned link generation).
 
-Built from the official `api` starter kit; the JSON:API integration was added with
-`node ace configure jsonapi-adonis`.
+Built from the official `api` starter kit; the JSON:API integration was added with `node ace configure jsonapi-adonis`.
 
 ## Run it
 
@@ -18,8 +15,7 @@ node ace migration:run
 node ace serve --watch
 ```
 
-Seed the demo data: two authors, three articles with spread-out publication dates, tags and
-comments, shaped so every filter visibly changes the result.
+Seed the demo data: two authors, three articles with spread-out publication dates, tags and comments, shaped so every filter visibly changes the result.
 
 ```sh
 node ace db:seed
@@ -113,7 +109,4 @@ node ace make:jsonapi:controller review --relationships
 node ace test
 ```
 
-The suite covers resource objects, compound documents, sparse fieldsets, sorting,
-pagination, filtering, resource writes, relationship endpoints, error documents, content
-negotiation and versioned links. Every test runs in a rolled-back transaction, and the
-database is truncated before the suite starts.
+The suite covers resource objects, compound documents, sparse fieldsets, sorting, pagination, filtering, resource writes, relationship endpoints, error documents, content negotiation and versioned links. Every test runs in a rolled-back transaction, and the database is truncated before the suite starts.
