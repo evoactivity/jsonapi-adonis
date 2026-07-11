@@ -1,0 +1,54 @@
+{{#var modelImportPath = generators.importPath('#models', entity.path, modelFileName.replace(/\.ts$/, ''))}}
+{{{
+  exports({
+    to: app.httpControllersPath(entity.path, relationshipsControllerFileName)
+  })
+}}}
+import {{ modelName }} from '{{ modelImportPath }}'
+import type { HttpContext } from '@adonisjs/core/http'
+
+/**
+ * JSON:API relationship endpoints:
+ * https://jsonapi.org/format/#crud-updating-relationships
+ */
+export default class {{ relationshipsControllerName }} {
+  /**
+   * GET /{{ type }}/:id/relationships/:relation
+   */
+  async show({ jsonApi, params }: HttpContext) {
+    const row = await {{ modelName }}.findOrFail(params.id)
+    return jsonApi.renderRelationship(row, params.relation)
+  }
+
+  /**
+   * GET /{{ type }}/:id/:relation — the "related" link target.
+   */
+  async related({ jsonApi, params }: HttpContext) {
+    const row = await {{ modelName }}.findOrFail(params.id)
+    return jsonApi.renderRelated(row, params.relation)
+  }
+
+  /**
+   * PATCH — full replacement (to-one and to-many).
+   */
+  async replace({ jsonApi, params }: HttpContext) {
+    const row = await {{ modelName }}.findOrFail(params.id)
+    return jsonApi.updateRelationship(row, params.relation, 'replace')
+  }
+
+  /**
+   * POST — add members to a to-many relationship (no duplicates).
+   */
+  async add({ jsonApi, params }: HttpContext) {
+    const row = await {{ modelName }}.findOrFail(params.id)
+    return jsonApi.updateRelationship(row, params.relation, 'add')
+  }
+
+  /**
+   * DELETE — remove members from a to-many relationship.
+   */
+  async remove({ jsonApi, params }: HttpContext) {
+    const row = await {{ modelName }}.findOrFail(params.id)
+    return jsonApi.updateRelationship(row, params.relation, 'remove')
+  }
+}

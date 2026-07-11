@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "outDir": "./build"
+  },
+  "include": [
+    "index.ts",
+    "configure.ts",
+    "src/**/*",
+    "providers/**/*",
+    "commands/**/*",
+    "stubs/main.ts"
+  ]
+}

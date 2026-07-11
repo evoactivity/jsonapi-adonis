@@ -1,0 +1,30 @@
+{{#var modelImportPath = generators.importPath('#models', entity.path, modelFileName.replace(/\.ts$/, ''))}}
+{{{
+  exports({
+    to: app.makePath('app/resources', entity.path, resourceFileName)
+  })
+}}}
+import {{ modelName }} from '{{ modelImportPath }}'
+import { JsonApiResource } from 'jsonapi-adonis'
+
+export default class {{ resourceName }} extends JsonApiResource<{{ modelName }}> {
+  static type = '{{ type }}'
+  static model = () => {{ modelName }}
+
+  /**
+   * Uncomment to curate the exposed attributes (defaults to every
+   * serializable column except the primary key and belongsTo FKs):
+   *
+   * attributes() {
+   *   return this.pick(['title'])
+   * }
+   */
+
+  /**
+   * Declare ?filter[...] parameters — nothing is filterable unless listed:
+   *
+   * static filters = {
+   *   title: filter.eq(),
+   * }
+   */
+}

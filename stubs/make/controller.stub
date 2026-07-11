@@ -1,0 +1,59 @@
+{{#var modelImportPath = generators.importPath('#models', entity.path, modelFileName.replace(/\.ts$/, ''))}}
+{{{
+  exports({
+    to: app.httpControllersPath(entity.path, controllerFileName)
+  })
+}}}
+import {{ modelName }} from '{{ modelImportPath }}'
+import type { HttpContext } from '@adonisjs/core/http'
+
+export default class {{ controllerName }} {
+  /**
+   * GET /{{ type }}
+   */
+  async index({ jsonApi }: HttpContext) {
+    const rows = await jsonApi.query({{ modelName }}).paginate(...jsonApi.page)
+    return jsonApi.render(rows)
+  }
+
+  /**
+   * GET /{{ type }}/:id
+   */
+  async show({ jsonApi, params }: HttpContext) {
+    const row = await jsonApi.query({{ modelName }}).where('id', params.id).firstOrFail()
+    return jsonApi.render(row)
+  }
+
+  /**
+   * POST /{{ type }}
+   */
+  async store({ jsonApi }: HttpContext) {
+    const input = await jsonApi.deserialize({{ modelName }})
+    // Validate input.attributes with your Vine validator before creating
+    const row = await {{ modelName }}.create(input.attributes)
+    await jsonApi.syncToMany(row, input.toMany)
+    return jsonApi.render(row, { status: 201 })
+  }
+
+  /**
+   * PATCH /{{ type }}/:id
+   */
+  async update({ jsonApi, params }: HttpContext) {
+    const row = await {{ modelName }}.findOrFail(params.id)
+    const input = await jsonApi.deserialize({{ modelName }}, { expectedId: String(row.id) })
+    // Validate input.attributes with your Vine validator before merging
+    row.merge(input.attributes)
+    await row.save()
+    await jsonApi.syncToMany(row, input.toMany)
+    return jsonApi.render(row)
+  }
+
+  /**
+   * DELETE /{{ type }}/:id
+   */
+  async destroy({ params, response }: HttpContext) {
+    const row = await {{ modelName }}.findOrFail(params.id)
+    await row.delete()
+    return response.noContent()
+  }
+}

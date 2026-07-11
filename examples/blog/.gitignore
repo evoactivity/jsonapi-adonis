@@ -1,0 +1,27 @@
+# Dependencies and AdonisJS build
+node_modules
+build
+tmp/*
+!tmp/.gitkeep
+
+# This is an example app with no secrets — .env files are committed on
+# purpose so it runs out of the box after cloning. The negations override
+# machine-global ignores (e.g. a ~/.gitignore with .env*).
+!.env
+!.env.example
+!.env.test
+
+# Frontend assets compiled code
+public/assets
+
+# Build tools specific
+npm-debug.log
+yarn-error.log
+
+# Editors specific
+.fleet
+.idea
+.vscode
+
+# Platform specific
+.DS_Store
