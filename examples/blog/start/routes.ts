@@ -9,8 +9,10 @@
 
 import { middleware } from '#start/kernel'
 import router from '@adonisjs/core/services/router'
-import { controllers } from '#generated/controllers'
 
+const NewAccountController = () => import('#controllers/new_account_controller')
+const AccessTokensController = () => import('#controllers/access_tokens_controller')
+const ProfileController = () => import('#controllers/profile_controller')
 const ArticlesController = () => import('#controllers/articles_controller')
 const ArticleRelationshipsController = () => import('#controllers/article_relationships_controller')
 
@@ -22,16 +24,16 @@ router
   .group(() => {
     router
       .group(() => {
-        router.post('signup', [controllers.NewAccount, 'store'])
-        router.post('login', [controllers.AccessTokens, 'store'])
+        router.post('signup', [NewAccountController, 'store'])
+        router.post('login', [AccessTokensController, 'store'])
       })
       .prefix('auth')
       .as('auth')
 
     router
       .group(() => {
-        router.get('profile', [controllers.Profile, 'show'])
-        router.post('logout', [controllers.AccessTokens, 'destroy'])
+        router.get('profile', [ProfileController, 'show'])
+        router.post('logout', [AccessTokensController, 'destroy'])
       })
       .prefix('account')
       .as('profile')

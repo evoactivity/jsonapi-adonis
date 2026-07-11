@@ -4,10 +4,6 @@
   "private": true,
   "type": "module",
   "license": "MIT",
-  "exports": {
-    "./data": "./.adonisjs/client/data.d.ts",
-    "./registry": "./.adonisjs/client/registry/index.ts"
-  },
   "scripts": {
     "start": "node bin/server.js",
     "build": "node ace build",
@@ -27,7 +23,6 @@
     "#services/*": "./app/services/*.js",
     "#listeners/*": "./app/listeners/*.js",
     "#events/*": "./app/events/*.js",
-    "#generated/*": "./.adonisjs/server/*.js",
     "#middleware/*": "./app/middleware/*.js",
     "#transformers/*": "./app/transformers/*.js",
     "#validators/*": "./app/validators/*.js",
@@ -66,7 +61,6 @@
     "@adonisjs/session": "^8.1.0",
     "@adonisjs/shield": "^9.0.0",
     "@japa/api-client": "^3.2.1",
-    "@tuyau/core": "^1.2.2",
     "@vinejs/vine": "^4.4.0",
     "better-sqlite3": "^12.10.0",
     "luxon": "^3.7.2",
