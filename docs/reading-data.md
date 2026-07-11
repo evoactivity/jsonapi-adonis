@@ -17,7 +17,8 @@ come from the model's own metadata:
 
 ## Customizing a resource
 
-Create a resource class when you want control over any of that:
+Create a resource class when you want control over any of the defaults, and register it in
+`config/jsonapi.ts`:
 
 ```ts
 // app/resources/user_resource.ts
@@ -25,33 +26,126 @@ import User from '#models/user'
 import { JsonApiResource } from 'jsonapi-adonis'
 
 export default class UserResource extends JsonApiResource<User> {
-  static type = 'users'
   static model = () => User
-
-  /** Choose exactly which attributes are exposed */
-  attributes() {
-    return {
-      ...this.pick(['fullName', 'email']),
-      initials: this.resource.initials, // computed values welcome
-    }
-  }
 }
 ```
 
-Inside a resource class, `this.resource` is the Lucid model instance being serialized (typed
-by the generic). `this.ctx` is the current HttpContext when serialization happens inside a
-request.
-
-Register it in `config/jsonapi.ts`:
-
 ```ts
+// config/jsonapi.ts
 export default defineConfig({
   resources: [() => import('#resources/user_resource')],
 })
 ```
 
-You can also override `id()`, `links()` and `meta()`, and restrict which relations are
-exposed with `static exposeRelationships = ['author', 'tags']`.
+That class above is already valid. `static model` is the only required member; registering
+without it throws, and everything else falls back to the auto-derived behavior. Inside any
+instance method, `this.resource` is the Lucid model instance being serialized (typed by the
+generic) and `this.ctx` is the current HttpContext when serialization happens inside a
+request, or `undefined` outside one.
+
+Every claim in this section is pinned by
+[`tests/unit/resource_customization.spec.ts`](../tests/unit/resource_customization.spec.ts).
+If the docs and the code ever disagree, that suite fails.
+
+Here is the full surface:
+
+| Member                       | Required | Default                                                              |
+| ---------------------------- | -------- | -------------------------------------------------------------------- |
+| `static model`               | Yes      | none, the registry throws without it                                 |
+| `static type`                | No       | kebab-cased table name (`access_tokens` → `access-tokens`)           |
+| `static exposeRelationships` | No       | every relation on the model                                          |
+| `static filters`             | No       | none, all `?filter[...]` requests get a 400                          |
+| `id()`                       | No       | the primary key, as a string                                         |
+| `attributes()`               | No       | serializable columns minus pk, belongsTo FKs and `serializeAs: null` |
+| `links()`                    | No       | nothing extra, the generated `self` link stands alone                |
+| `meta()`                     | No       | no `meta` member                                                     |
+
+### `static type`
+
+Overrides the resource type everywhere the model appears: primary data, linkage pointers,
+`included`, and the type clients must send in write requests.
+
+```ts
+export default class UserResource extends JsonApiResource<User> {
+  static model = () => User
+  static type = 'people'
+}
+```
+
+### `id()`
+
+The default returns the primary key as a string. Override it to expose a different public
+identity, a slug or a prefixed id for example. The override is honoured everywhere: `data.id`,
+relationship linkage, and `included` all agree, because dedup and pointers go through the
+same method.
+
+```ts
+id() {
+  return `u-${this.resource.id}`
+}
+```
+
+Note the id is identity, not decoration. If you override it on a resource that has write
+endpoints, clients will send this id back and your controllers must be able to look records
+up by it.
+
+### `attributes()`
+
+The default returns every serializable column except the primary key (already in `id`),
+belongsTo foreign keys (already in `relationships`), and anything marked
+`serializeAs: null`. Override it to curate the set. `this.pick([...])` selects columns by
+their serialized names, and computed values are plain properties:
+
+```ts
+attributes() {
+  return {
+    ...this.pick(['fullName', 'email']),
+    initials: this.resource.initials,
+  }
+}
+```
+
+Sparse fieldsets (`?fields[type]=`) filter whatever this method returns, so computed
+attributes participate like any other.
+
+### `links()`
+
+Whatever you return is merged over the generated links, which means you can add links or
+replace the generated `self`:
+
+```ts
+links() {
+  return { canonical: `https://example.com/u/${this.resource.id}` }
+}
+```
+
+The generated `self` survives alongside your additions. Return a `self` key yourself and it
+wins over the generated one.
+
+### `meta()`
+
+Attach per-resource metadata. Returning `undefined` or an empty object omits the `meta`
+member entirely, so it's safe to make it conditional:
+
+```ts
+meta() {
+  return { isOwn: this.ctx?.auth?.user?.id === this.resource.id }
+}
+```
+
+### `static exposeRelationships`
+
+By default every relation defined on the model appears as a relationship member. List the
+ones you want to expose and the rest disappear from documents:
+
+```ts
+static exposeRelationships = ['author', 'tags']
+```
+
+### `static filters`
+
+Declares the `?filter[...]` parameters this resource accepts. Nothing is filterable without
+it. Covered in depth in [Filtering](#filtering) below.
 
 ## Relationships and included data
 

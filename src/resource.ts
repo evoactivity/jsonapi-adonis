@@ -23,7 +23,7 @@ import type { FilterHandler } from './filters.ts'
  */
 export class JsonApiResource<Row extends LucidRow = LucidRow> {
   /**
-   * The JSON:API resource type. Defaults to the camelCased table name of
+   * The JSON:API resource type. Defaults to the kebab-cased table name of
    * the model.
    */
   declare static type?: string
@@ -77,8 +77,9 @@ export class JsonApiResource<Row extends LucidRow = LucidRow> {
   }
 
   /**
-   * Per-resource links. Return undefined to omit. The document builder adds
-   * a `self` link automatically when a base URL is configured.
+   * Extra per-resource links, merged over the generated ones. Return
+   * undefined to add nothing. The document builder generates the `self`
+   * link from named routes; keys returned here override it.
    */
   links(): Links | undefined {
     return undefined
