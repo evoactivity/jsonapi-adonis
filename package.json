@@ -1,9 +1,18 @@
 {
   "name": "jsonapi-adonis",
   "version": "0.1.0",
-  "description": "JSON:API (jsonapi.org) serialization, deserialization and routing for AdonisJS + Lucid",
+  "description": "JSON:API serialization, deserialization and routing for AdonisJS",
   "type": "module",
   "license": "MIT",
+  "author": "Liam Potter <liam@liampotter.co.uk> (https://github.com/evoactivity)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/evoactivity/jsonapi-adonis.git"
+  },
+  "homepage": "https://github.com/evoactivity/jsonapi-adonis#readme",
+  "bugs": {
+    "url": "https://github.com/evoactivity/jsonapi-adonis/issues"
+  },
   "keywords": [
     "adonisjs",
     "adonis",
@@ -32,8 +41,7 @@
     }
   },
   "files": [
-    "build",
-    "stubs"
+    "build"
   ],
   "scripts": {
     "build": "npm run clean && tsc -p tsconfig.build.json && cp -R stubs/config stubs/make build/stubs/",
