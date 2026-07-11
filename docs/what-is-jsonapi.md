@@ -77,7 +77,7 @@ And when someone means the payload itself is verbose: the repeated envelope keys
 
 Libraries that already speak the format, on day one. Options like `jsona`, `Kitsu`, `jsonapi-react` plus typed document definitions in `jsonapi-typescript`. On mobile there are JSON:API clients for Swift and Kotlin eg `swift-jsonapi`, `Spraypaint`. All of them get pagination, includes, sparse fieldsets and error handling right, because those behave identically on every compliant API.
 
-## Where does jsonapi-adonis fit?
+## Where does @evoactivity/jsonapi-adonis fit?
 
 It implements the server side of the spec for AdonisJS, using your Lucid models as the source of truth: serialization, includes, sparse fieldsets, sorting, filtering, pagination, writes, relationship endpoints, error documents and content negotiation. The rest of these docs cover each piece.
 

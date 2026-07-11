@@ -65,7 +65,7 @@
     "better-sqlite3": "^12.10.0",
     "luxon": "^3.7.2",
     "reflect-metadata": "^0.2.2",
-    "jsonapi-adonis": "link:../.."
+    "@evoactivity/jsonapi-adonis": "link:../.."
   },
   "hotHook": {
     "boundaries": [
@@ -74,5 +74,5 @@
     ]
   },
   "prettier": "@adonisjs/prettier-config",
-  "description": "Example blog API demonstrating jsonapi-adonis"
+  "description": "Example blog API demonstrating @evoactivity/jsonapi-adonis"
 }

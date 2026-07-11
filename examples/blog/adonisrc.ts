@@ -27,7 +27,7 @@ export default defineConfig({
     () => import('@adonisjs/core/commands'),
     () => import('@adonisjs/lucid/commands'),
     () => import('@adonisjs/session/commands'),
-    () => import('jsonapi-adonis/commands'),
+    () => import('@evoactivity/jsonapi-adonis/commands'),
   ],
 
   /*
@@ -53,7 +53,7 @@ export default defineConfig({
     () => import('@adonisjs/cors/cors_provider'),
     () => import('@adonisjs/auth/auth_provider'),
     () => import('#providers/api_provider'),
-    () => import('jsonapi-adonis/provider'),
+    () => import('@evoactivity/jsonapi-adonis/provider'),
   ],
 
   /*

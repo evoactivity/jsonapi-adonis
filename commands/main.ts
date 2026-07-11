@@ -4,11 +4,11 @@ import MakeJsonApiResource from './make_jsonapi_resource.ts'
 import MakeJsonApiController from './make_jsonapi_controller.ts'
 
 /**
- * Ace command loader for jsonapi-adonis. Registered in consumer apps as:
+ * Ace command loader for @evoactivity/jsonapi-adonis. Registered in consumer apps as:
  *
  * ```ts
  * // adonisrc.ts
- * commands: [() => import('jsonapi-adonis/commands')]
+ * commands: [() => import('@evoactivity/jsonapi-adonis/commands')]
  * ```
  */
 const loader = new ListLoader([MakeJsonApiResource, MakeJsonApiController])

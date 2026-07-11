@@ -1,4 +1,4 @@
-import { defineConfig } from 'jsonapi-adonis'
+import { defineConfig } from '@evoactivity/jsonapi-adonis'
 
 export default defineConfig({
   /**

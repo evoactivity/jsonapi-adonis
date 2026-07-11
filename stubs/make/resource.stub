@@ -5,7 +5,7 @@
   })
 }}}
 import {{ modelName }} from '{{ modelImportPath }}'
-import { JsonApiResource } from 'jsonapi-adonis'
+import { JsonApiResource } from '@evoactivity/jsonapi-adonis'
 
 export default class {{ resourceName }} extends JsonApiResource<{{ modelName }}> {
   static type = '{{ type }}'

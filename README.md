@@ -1,4 +1,4 @@
-<img src="./header.svg" alt="jsonapi-adonis" width="100%">
+<img src="./header.svg" alt="@evoactivity/jsonapi-adonis" width="100%">
 
 # Adonis JSON:API
 
@@ -17,7 +17,7 @@ New to JSON:API itself? Start with [What is JSON:API?](./docs/what-is-jsonapi.md
 ## Installation
 
 ```sh
-node ace add jsonapi-adonis
+node ace add @evoactivity/jsonapi-adonis
 ```
 
 This installs the package and configures it: it creates `config/jsonapi.ts`, then registers the provider, the `jsonApi` named middleware and the generator commands.
@@ -75,7 +75,7 @@ export default class ArticlesController {
 
 ```ts
 // app/exceptions/handler.ts
-import { renderJsonApiError } from 'jsonapi-adonis'
+import { renderJsonApiError } from '@evoactivity/jsonapi-adonis'
 
 async handle(error: unknown, ctx: HttpContext) {
   if (ctx.jsonApi.handlesErrors()) {

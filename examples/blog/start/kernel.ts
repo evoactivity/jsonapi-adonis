@@ -45,6 +45,6 @@ router.use([
  * the routes or the routes group.
  */
 export const middleware = router.named({
-  jsonApi: () => import('jsonapi-adonis/middleware'),
+  jsonApi: () => import('@evoactivity/jsonapi-adonis/middleware'),
   auth: () => import('#middleware/auth_middleware'),
 })

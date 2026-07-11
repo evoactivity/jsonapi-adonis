@@ -1,4 +1,4 @@
-# The building blocks: using jsonapi-adonis outside a request
+# The building blocks: using @evoactivity/jsonapi-adonis outside a request
 
 The `jsonApi` context helper is a thin facade. Everything it does is built from exported pieces you can compose yourself, which is how you produce or consume JSON:API documents where there is no HTTP request: ace commands, queue jobs, scheduled tasks, tests, webhook processors, or static exports for a frontend.
 
@@ -20,7 +20,7 @@ The `jsonApi` context helper is a thin facade. Everything it does is built from 
 The provider binds its registry, with every resource class from `config/jsonapi.ts` registered, into the container as a singleton keyed by the class itself:
 
 ```ts
-import { JsonApiRegistry } from 'jsonapi-adonis'
+import { JsonApiRegistry } from '@evoactivity/jsonapi-adonis'
 
 const registry = await app.container.make(JsonApiRegistry)
 ```
@@ -42,7 +42,7 @@ import {
   parseQueryParams,
   validateIncludeTree,
   type DynamicModelQuery,
-} from 'jsonapi-adonis'
+} from '@evoactivity/jsonapi-adonis'
 
 export default class ExportArticles extends BaseCommand {
   static commandName = 'export:articles'
@@ -103,7 +103,7 @@ Inside a request, links are namespaced by the route that served it. Outside a re
 Useful for queue-delivered payloads or webhook bodies that carry JSON:API documents:
 
 ```ts
-import { deserializeResourceDocument, verifyRelatedExist, JsonApiRegistry } from 'jsonapi-adonis'
+import { deserializeResourceDocument, verifyRelatedExist, JsonApiRegistry } from '@evoactivity/jsonapi-adonis'
 
 const registry = await app.container.make(JsonApiRegistry)
 const input = deserializeResourceDocument(Article, registry, payload, {
@@ -121,7 +121,7 @@ All the write-side error semantics apply (400/403/409, and 404 via `verifyRelate
 `toErrorDocument(error, debug)` is pure. It maps any thrown value to `{ status, body }` where `body` is a spec-compliant errors document. Handy for jobs that report failures in JSON:API shape, or for testing error mappings without a server:
 
 ```ts
-import { toErrorDocument } from 'jsonapi-adonis'
+import { toErrorDocument } from '@evoactivity/jsonapi-adonis'
 
 const { status, body } = toErrorDocument(error, false)
 ```

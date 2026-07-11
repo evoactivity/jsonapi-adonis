@@ -77,6 +77,9 @@ importers:
       '@adonisjs/shield':
         specifier: ^9.0.0
         version: 9.0.0(acd1b6358fd1e40de657adcd035dc9e0)
+      '@evoactivity/jsonapi-adonis':
+        specifier: link:../..
+        version: link:../..
       '@japa/api-client':
         specifier: ^3.2.1
         version: 3.2.1(@japa/assert@4.2.0(@japa/runner@5.3.0))(@japa/runner@5.3.0)
@@ -86,9 +89,6 @@ importers:
       better-sqlite3:
         specifier: ^12.10.0
         version: 12.11.1
-      jsonapi-adonis:
-        specifier: link:../..
-        version: link:../..
       luxon:
         specifier: ^3.7.2
         version: 3.7.2

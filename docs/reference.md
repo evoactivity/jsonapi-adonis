@@ -19,13 +19,13 @@ Everything hangs off the `jsonApi` context property, installed by the provider. 
 | `handlesErrors()`                          | Whether this request's errors should render as JSON:API documents                        |
 | `links`                                    | The request's `LinkBuilder` (rarely needed directly)                                     |
 
-Lower-level building blocks (`DocumentBuilder`, `JsonApiRegistry`, `parseQueryParams`, `deserializeResourceDocument`, `toErrorDocument`, …) are all exported from `jsonapi-adonis` if you need to assemble custom behavior. See [Low-level building blocks](./low-level.md) for how to use them outside a request.
+Lower-level building blocks (`DocumentBuilder`, `JsonApiRegistry`, `parseQueryParams`, `deserializeResourceDocument`, `toErrorDocument`, …) are all exported from `@evoactivity/jsonapi-adonis` if you need to assemble custom behavior. See [Low-level building blocks](./low-level.md) for how to use them outside a request.
 
 ## Configuration
 
 ```ts
 // config/jsonapi.ts
-import { defineConfig } from 'jsonapi-adonis'
+import { defineConfig } from '@evoactivity/jsonapi-adonis'
 
 export default defineConfig({
   /** Resource classes; models without one are auto-derived */

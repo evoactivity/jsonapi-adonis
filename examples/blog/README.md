@@ -1,8 +1,8 @@
 # Blog example
 
-A complete AdonisJS application demonstrating [jsonapi-adonis](../../README.md): articles, comments, tags and users, served as a JSON:API under both `/api/v1` and `/api/v2` (to show versioned link generation).
+A complete AdonisJS application demonstrating [@evoactivity/jsonapi-adonis](../../README.md): articles, comments, tags and users, served as a JSON:API under both `/api/v1` and `/api/v2` (to show versioned link generation).
 
-Built from the official `api` starter kit; the JSON:API integration was added with `node ace configure jsonapi-adonis`.
+Built from the official `api` starter kit; the JSON:API integration was added with `node ace configure @evoactivity/jsonapi-adonis`.
 
 ## Run it
 

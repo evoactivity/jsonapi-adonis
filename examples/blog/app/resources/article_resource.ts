@@ -1,5 +1,5 @@
 import Article from '#models/article'
-import { JsonApiResource, filter } from 'jsonapi-adonis'
+import { JsonApiResource, filter } from '@evoactivity/jsonapi-adonis'
 
 export default class ArticleResource extends JsonApiResource<Article> {
   static type = 'articles'

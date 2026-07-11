@@ -1,5 +1,5 @@
 import User from '#models/user'
-import { JsonApiResource } from 'jsonapi-adonis'
+import { JsonApiResource } from '@evoactivity/jsonapi-adonis'
 
 export default class UserResource extends JsonApiResource<User> {
   static type = 'users'

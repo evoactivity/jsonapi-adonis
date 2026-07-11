@@ -1,6 +1,6 @@
 import app from '@adonisjs/core/services/app'
 import { type HttpContext, ExceptionHandler } from '@adonisjs/core/http'
-import { renderJsonApiError } from 'jsonapi-adonis'
+import { renderJsonApiError } from '@evoactivity/jsonapi-adonis'
 
 export default class HttpExceptionHandler extends ExceptionHandler {
   /**

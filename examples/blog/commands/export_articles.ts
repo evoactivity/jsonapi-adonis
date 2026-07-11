@@ -8,12 +8,12 @@ import {
   parseQueryParams,
   validateIncludeTree,
   type DynamicModelQuery,
-} from 'jsonapi-adonis'
+} from '@evoactivity/jsonapi-adonis'
 
 /**
  * Serializes articles into a JSON:API document without any HTTP request —
  * the same building blocks the ctx.jsonApi helper composes, driven by hand.
- * See docs/low-level.md in the jsonapi-adonis repository.
+ * See docs/low-level.md in the @evoactivity/jsonapi-adonis repository.
  */
 export default class ExportArticles extends BaseCommand {
   static commandName = 'export:articles'

@@ -64,7 +64,7 @@ Every error can render as a spec-compliant errors document. Delegate from your e
 
 ```ts
 // app/exceptions/handler.ts
-import { renderJsonApiError } from 'jsonapi-adonis'
+import { renderJsonApiError } from '@evoactivity/jsonapi-adonis'
 
 async handle(error: unknown, ctx: HttpContext) {
   if (ctx.jsonApi.handlesErrors()) {

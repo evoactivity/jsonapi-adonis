@@ -18,7 +18,7 @@ Create a resource class when you want control over any of the defaults, and regi
 ```ts
 // app/resources/user_resource.ts
 import User from '#models/user'
-import { JsonApiResource } from 'jsonapi-adonis'
+import { JsonApiResource } from '@evoactivity/jsonapi-adonis'
 
 export default class UserResource extends JsonApiResource<User> {
   static model = () => User
@@ -166,7 +166,7 @@ GET /api/v1/articles?sort=-createdAt,title&page[number]=2&page[size]=10
 The spec reserves `filter[...]` but leaves its meaning to the server. This package takes a strict, declarative stance: nothing is filterable unless the resource says so. Declare filters on the resource class:
 
 ```ts
-import { JsonApiResource, filter } from 'jsonapi-adonis'
+import { JsonApiResource, filter } from '@evoactivity/jsonapi-adonis'
 
 export default class ArticleResource extends JsonApiResource<Article> {
   static type = 'articles'

@@ -1,5 +1,5 @@
 /**
- * jsonapi-adonis — JSON:API for AdonisJS + Lucid.
+ * @evoactivity/jsonapi-adonis — JSON:API for AdonisJS + Lucid.
  */
 export * from './src/index.ts'
 export { configure } from './configure.ts'
