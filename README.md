@@ -40,6 +40,9 @@ export default defineConfig({
 })
 ```
 
+> [!NOTE]
+> Resource classes are optional. Every model serializes automatically with its type, attributes and relationships derived from Lucid metadata, so a controller alone works fine: `node ace make:jsonapi:controller article` generates just the controllers, and there's nothing to register in the config. Write a resource class when you want to customize the output, see [Customizing a resource](./docs/reading-data.md#customizing-a-resource).
+
 **2. That's it. Make a request:**
 
 ```

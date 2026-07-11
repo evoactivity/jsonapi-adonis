@@ -1,6 +1,6 @@
 {
   "name": "@evoactivity/jsonapi-adonis",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "JSON:API serialization, deserialization and routing for AdonisJS",
   "type": "module",
   "license": "MIT",
