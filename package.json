@@ -52,7 +52,8 @@
     "format": "prettier --write .",
     "test": "node --import=@poppinss/ts-exec bin/test.ts",
     "test:example": "pnpm -C examples/blog test",
-    "test:all": "npm run test && npm run test:example"
+    "test:all": "pnpm run test && pnpm run test:example",
+    "prepublishOnly": "pnpm build"
   },
   "peerDependencies": {
     "@adonisjs/core": "^7.0.0",
