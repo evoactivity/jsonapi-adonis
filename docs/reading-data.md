@@ -43,6 +43,13 @@ instance method, `this.resource` is the Lucid model instance being serialized (t
 generic) and `this.ctx` is the current HttpContext when serialization happens inside a
 request, or `undefined` outside one.
 
+Why is `static model` required when serialization itself doesn't need a resource class? The
+registry is a map from model class to resource class: serialization starts from a Lucid row,
+so the model is always the known side, and auto-derivation is just what happens on a map
+miss. Registering a class means filing it under a key, and `static model` is that key.
+Without the key the class would be unreachable, so the registry fails loudly instead
+of silently ignoring a resource you wrote.
+
 Every claim in this section is pinned by
 [`tests/unit/resource_customization.spec.ts`](../tests/unit/resource_customization.spec.ts).
 If the docs and the code ever disagree, that suite fails.
@@ -141,6 +148,11 @@ ones you want to expose and the rest disappear from documents:
 ```ts
 static exposeRelationships = ['author', 'tags']
 ```
+
+One wrinkle to know about: `?include=` validation checks the model's relations, not this
+list. Asking to include a hidden relation is therefore not a 400. The request succeeds and
+the hidden relation simply contributes nothing, neither a relationship member nor `included`
+entries.
 
 ### `static filters`
 

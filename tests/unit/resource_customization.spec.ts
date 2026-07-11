@@ -140,11 +140,8 @@ test.group('links()', () => {
     }
     const registry = new JsonApiRegistry().register([UserResource])
     const user = make(User, { fullName: 'A', email: 'a@x.com' })
-    const data = build(
-      user,
-      registry,
-      new LinkBuilder(true, stubRouter(), 'api.users.show')
-    ).data as any
+    const data = build(user, registry, new LinkBuilder(true, stubRouter(), 'api.users.show'))
+      .data as any
 
     assert.equal(data.links.self, `/api/users/${user.id}`) // generated
     assert.equal(data.links.canonical, `https://example.com/u/${user.id}`) // custom
@@ -226,5 +223,31 @@ test.group('this.ctx', () => {
 
     const withoutCtx = build(user, registry)
     assert.deepEqual((withoutCtx.data as any).meta, { hasContext: false })
+  })
+})
+
+test.group('exposeRelationships and ?include=', () => {
+  test('a hidden relation is still accepted by include but contributes nothing', ({ assert }) => {
+    class ArticleResource extends JsonApiResource<Article> {
+      static model = () => Article
+      static exposeRelationships = ['tags']
+    }
+    const registry = new JsonApiRegistry().register([ArticleResource])
+
+    const author = make(User, { fullName: 'A', email: 'a@x.com' })
+    const article = make(Article, { title: 'T', authorId: author.id })
+    article.$setRelated('author', author)
+
+    // include validation only consults the model's relations, not the
+    // resource's exposeRelationships list, so this does not 400 today
+    const doc = new DocumentBuilder(
+      registry,
+      parseQueryParams({ include: 'author' }),
+      new LinkBuilder(false)
+    ).build(article)
+
+    const data = doc.data as any
+    assert.notProperty(data.relationships ?? {}, 'author')
+    assert.notProperty(doc, 'included')
   })
 })
