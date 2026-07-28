@@ -2,17 +2,6 @@
   "name": "@evoactivity/jsonapi-adonis",
   "version": "0.1.2",
   "description": "JSON:API serialization, deserialization and routing for AdonisJS",
-  "type": "module",
-  "license": "MIT",
-  "author": "Liam Potter <liam@liampotter.co.uk> (https://github.com/evoactivity)",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/evoactivity/jsonapi-adonis.git"
-  },
-  "homepage": "https://github.com/evoactivity/jsonapi-adonis#readme",
-  "bugs": {
-    "url": "https://github.com/evoactivity/jsonapi-adonis/issues"
-  },
   "keywords": [
     "adonisjs",
     "adonis",
@@ -23,24 +12,22 @@
     "serializer",
     "rest"
   ],
-  "engines": {
-    "node": ">=22.0.0"
+  "homepage": "https://github.com/evoactivity/jsonapi-adonis#readme",
+  "bugs": {
+    "url": "https://github.com/evoactivity/jsonapi-adonis/issues"
   },
-  "packageManager": "pnpm@10.24.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/evoactivity/jsonapi-adonis.git"
+  },
+  "license": "MIT",
+  "author": "Liam Potter <liam@liampotter.co.uk> (https://github.com/evoactivity)",
+  "type": "module",
   "exports": {
     ".": "./index.ts",
     "./provider": "./providers/jsonapi_provider.ts",
     "./middleware": "./src/negotiation_middleware.ts",
     "./commands": "./commands/main.ts"
-  },
-  "publishConfig": {
-    "access": "public",
-    "exports": {
-      ".": "./build/index.js",
-      "./provider": "./build/providers/jsonapi_provider.js",
-      "./middleware": "./build/src/negotiation_middleware.js",
-      "./commands": "./build/commands/main.js"
-    }
   },
   "files": [
     "build"
@@ -48,18 +35,15 @@
   "scripts": {
     "build": "npm run clean && tsc -p tsconfig.build.json && cp -R stubs/config stubs/make build/stubs/",
     "clean": "rm -rf build",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint .",
     "format": "prettier --write .",
+    "lint": "eslint .",
+    "prepublishOnly": "pnpm build",
     "test": "node --import=@poppinss/ts-exec bin/test.ts",
-    "test:example": "pnpm -C examples/blog test",
     "test:all": "pnpm run test && pnpm run test:example",
-    "prepublishOnly": "pnpm build"
+    "test:example": "pnpm -C examples/blog test",
+    "typecheck": "tsc --noEmit"
   },
-  "peerDependencies": {
-    "@adonisjs/core": "^7.0.0",
-    "@adonisjs/lucid": "^22.0.0"
-  },
+  "prettier": "@adonisjs/prettier-config",
   "devDependencies": {
     "@adonisjs/assembler": "^8.4.0",
     "@adonisjs/core": "^7.3.3",
@@ -75,8 +59,25 @@
     "eslint": "^10.4.0",
     "luxon": "^3.7.2",
     "prettier": "^3.8.3",
+    "release-plan": "^0.18.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.63.0"
   },
-  "prettier": "@adonisjs/prettier-config"
+  "peerDependencies": {
+    "@adonisjs/core": "^7.0.0",
+    "@adonisjs/lucid": "^22.0.0"
+  },
+  "packageManager": "pnpm@10.24.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": "./build/index.js",
+      "./provider": "./build/providers/jsonapi_provider.js",
+      "./middleware": "./build/src/negotiation_middleware.js",
+      "./commands": "./build/commands/main.js"
+    }
+  }
 }
