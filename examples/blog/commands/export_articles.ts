@@ -36,7 +36,7 @@ export default class ExportArticles extends BaseCommand {
 
     /** Reuse the query-parameter machinery for include parsing/validation */
     const params = parseQueryParams({ include: this.include })
-    validateIncludeTree(Article, params.include)
+    validateIncludeTree(Article, params.include, registry)
 
     const query = Article.query()
     // Same variance bridge ctx.jsonApi.query() uses: Lucid types preload()

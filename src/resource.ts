@@ -21,6 +21,21 @@ import type { FilterHandler } from './filters.ts'
  * }
  * ```
  */
+/**
+ * The single home for the relation-visibility rule: a relation is exposed
+ * unless the model hides it (serializeAs: null) or the resource leaves it
+ * out of exposeRelationships. Shared by include validation and
+ * serialization so the two can never drift apart.
+ */
+export function isRelationExposed(
+  ResourceClass: { exposeRelationships?: string[] },
+  name: string,
+  relation: { serializeAs?: string | null }
+): boolean {
+  if (relation.serializeAs === null) return false
+  return !ResourceClass.exposeRelationships || ResourceClass.exposeRelationships.includes(name)
+}
+
 export class JsonApiResource<Row extends LucidRow = LucidRow> {
   /**
    * The JSON:API resource type. Defaults to the kebab-cased table name of

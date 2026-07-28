@@ -56,9 +56,11 @@ export default class ExportArticles extends BaseCommand {
     const { default: Article } = await import('#models/article')
     const registry = await this.app.container.make(JsonApiRegistry)
 
-    // Reuse the query-parameter machinery: parse and validate include paths
+    // Reuse the query-parameter machinery: parse and validate include paths.
+    // Passing the registry makes validation respect exposeRelationships;
+    // without it only the model's relations are checked.
     const params = parseQueryParams({ include: this.include })
-    validateIncludeTree(Article, params.include)
+    validateIncludeTree(Article, params.include, registry)
 
     // Preload the include tree, then fetch. The cast is the same variance
     // bridge ctx.jsonApi.query() uses internally: Lucid types preload()
