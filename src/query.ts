@@ -1,24 +1,42 @@
 import type { LucidModel } from '@adonisjs/lucid/types/model'
 import type { IncludeTree, SortField } from './types.ts'
 import type { DynamicModelQuery } from './lucid_access.ts'
+import type { JsonApiRegistry } from './registry.ts'
+import { isRelationExposed } from './resource.ts'
 import { JsonApiException } from './errors.ts'
 
 /**
  * Validates every path of an include tree against the model's relationship
  * definitions. The spec requires a 400 when an unsupported include path is
- * requested.
+ * requested. When a registry is given, relations left out of the resource's
+ * exposeRelationships list are treated as unsupported too, so hidden
+ * relations are rejected before any preloading happens.
  */
-export function validateIncludeTree(Model: LucidModel, tree: IncludeTree, prefix = ''): void {
+export function validateIncludeTree(
+  Model: LucidModel,
+  tree: IncludeTree,
+  registry?: JsonApiRegistry
+): void {
+  validateIncludeLevel(Model, tree, registry, '')
+}
+
+function validateIncludeLevel(
+  Model: LucidModel,
+  tree: IncludeTree,
+  registry: JsonApiRegistry | undefined,
+  prefix: string
+): void {
+  const ResourceClass = registry?.resourceFor(Model) ?? {}
   for (const [name, subTree] of Object.entries(tree)) {
     const relation = Model.$relationsDefinitions.get(name)
     const path = prefix ? `${prefix}.${name}` : name
-    if (!relation || relation.serializeAs === null) {
+    if (!relation || !isRelationExposed(ResourceClass, name, relation)) {
       throw JsonApiException.invalidQueryParameter(
         'include',
         `"${path}" is not a supported include path for ${Model.name}`
       )
     }
-    validateIncludeTree(relation.relatedModel(), subTree, path)
+    validateIncludeLevel(relation.relatedModel(), subTree, registry, path)
   }
 }
 

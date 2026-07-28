@@ -13,6 +13,7 @@ import type {
 } from './types.ts'
 import { JSON_API_VERSION } from './types.ts'
 import { instantiateResource, type JsonApiRegistry } from './registry.ts'
+import { isRelationExposed } from './resource.ts'
 import type { LinkBuilder } from './links.ts'
 
 export type Paginatorish = {
@@ -150,10 +151,7 @@ export class DocumentBuilder {
     const relationships: Record<string, RelationshipObject> = {}
 
     for (const [name, relation] of Model.$relationsDefinitions) {
-      if (ResourceClass.exposeRelationships && !ResourceClass.exposeRelationships.includes(name)) {
-        continue
-      }
-      if (relation.serializeAs === null) continue
+      if (!isRelationExposed(ResourceClass, name, relation)) continue
       const serializedName = relation.serializeAs ?? name
 
       // Sparse fieldsets restrict relationship members too (spec: "fields"

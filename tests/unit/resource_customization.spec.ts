@@ -10,6 +10,10 @@ import { JsonApiRegistry } from '../../src/registry.ts'
 import { JsonApiResource } from '../../src/resource.ts'
 import { LinkBuilder } from '../../src/links.ts'
 import { parseQueryParams } from '../../src/params.ts'
+import { validateIncludeTree } from '../../src/query.ts'
+import { JsonApiException } from '../../src/errors.ts'
+import { JsonApiRequestContext } from '../../src/context.ts'
+import { defineConfig } from '../../src/define_config.ts'
 import { Article, User, make } from '../fixtures/models.ts'
 import { stubRouter } from '../fixtures/stub_router.ts'
 
@@ -227,27 +231,76 @@ test.group('this.ctx', () => {
 })
 
 test.group('exposeRelationships and ?include=', () => {
-  test('a hidden relation is still accepted by include but contributes nothing', ({ assert }) => {
+  test('an unexposed relation is rejected as an unsupported include path', ({ assert }) => {
     class ArticleResource extends JsonApiResource<Article> {
       static model = () => Article
       static exposeRelationships = ['tags']
     }
     const registry = new JsonApiRegistry().register([ArticleResource])
 
-    const author = make(User, { fullName: 'A', email: 'a@x.com' })
-    const article = make(Article, { title: 'T', authorId: author.id })
-    article.$setRelated('author', author)
+    const error = assert.throws(
+      () => validateIncludeTree(Article, { author: {} }, registry),
+      JsonApiException
+    ) as unknown as JsonApiException
+    assert.equal(error.status, 400)
+    assert.match(error.errors[0].detail!, /"author" is not a supported include path/)
+  })
 
-    // include validation only consults the model's relations, not the
-    // resource's exposeRelationships list, so this does not 400 today
-    const doc = new DocumentBuilder(
-      registry,
-      parseQueryParams({ include: 'author' }),
-      new LinkBuilder(false)
-    ).build(article)
+  test('an exposed relation still validates', ({ assert }) => {
+    class ArticleResource extends JsonApiResource<Article> {
+      static model = () => Article
+      static exposeRelationships = ['tags']
+    }
+    const registry = new JsonApiRegistry().register([ArticleResource])
 
-    const data = doc.data as any
-    assert.notProperty(data.relationships ?? {}, 'author')
-    assert.notProperty(doc, 'included')
+    assert.doesNotThrow(() => validateIncludeTree(Article, { tags: {} }, registry))
+  })
+
+  test('an unexposed relation at a nested level is rejected with the full path', ({ assert }) => {
+    class UserResource extends JsonApiResource<User> {
+      static model = () => User
+      static exposeRelationships = ['profile']
+    }
+    const registry = new JsonApiRegistry().register([UserResource])
+
+    const error = assert.throws(
+      () => validateIncludeTree(Article, { author: { articles: {} } }, registry),
+      JsonApiException
+    ) as unknown as JsonApiException
+    assert.equal(error.status, 400)
+    assert.match(error.errors[0].detail!, /"author\.articles" is not a supported include path/)
+  })
+
+  test('resources without exposeRelationships accept every relation', ({ assert }) => {
+    const registry = new JsonApiRegistry()
+    assert.doesNotThrow(() =>
+      validateIncludeTree(Article, { author: { profile: {} }, tags: {} }, registry)
+    )
+  })
+
+  test('without a registry, only model relations are checked', ({ assert }) => {
+    assert.doesNotThrow(() => validateIncludeTree(Article, { author: {} }))
+  })
+
+  test('ctx.jsonApi.query() rejects an unexposed include before building the query', ({
+    assert,
+  }) => {
+    class ArticleResource extends JsonApiResource<Article> {
+      static model = () => Article
+      static exposeRelationships = ['tags']
+    }
+    const registry = new JsonApiRegistry().register([ArticleResource])
+
+    const ctx = new HttpContextFactory().create()
+    ctx.request.updateQs({ include: 'author' })
+    const jsonApi = new JsonApiRequestContext(ctx, registry, defineConfig({}))
+
+    // throws during validation, before model.query() would touch a database
+    const error = assert.throws(
+      () => jsonApi.query(Article),
+      JsonApiException
+    ) as unknown as JsonApiException
+    assert.equal(error.status, 400)
+    assert.match(error.errors[0].detail!, /"author" is not a supported include path/)
   })
 })

@@ -119,7 +119,7 @@ By default every relation defined on the model appears as a relationship member.
 static exposeRelationships = ['author', 'tags']
 ```
 
-One wrinkle to know about: `?include=` validation checks the model's relations, not this list. Asking to include a hidden relation is therefore not a 400. The request succeeds and the hidden relation simply contributes nothing, neither a relationship member nor `included` entries.
+Hidden relations are hidden from `?include=` too. Asking to include one is rejected with a 400, exactly like an include path that does not exist, and no preloading happens for it. This keeps a deliberately hidden relation from being loaded (and paid for) just to be discarded at serialization.
 
 ### `static filters`
 

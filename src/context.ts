@@ -121,7 +121,7 @@ export class JsonApiRequestContext {
    * parameters throw a 400.
    */
   query<Model extends LucidModel>(model: Model): ModelQueryBuilderContract<Model> {
-    validateIncludeTree(model, this.params.include)
+    validateIncludeTree(model, this.params.include, this.#registry)
     const query = model.query()
     /**
      * Variance bridge: Lucid's builder is generic over the concrete model
