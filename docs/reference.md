@@ -19,6 +19,8 @@ Everything hangs off the `jsonApi` context property, installed by the provider. 
 | `handlesErrors()`                          | Whether this request's errors should render as JSON:API documents                        |
 | `links`                                    | The request's `LinkBuilder` (rarely needed directly)                                     |
 
+The builder returned by `query(Model)` is a normal Lucid query builder: chain `withScopes()` to constrain the primary data and `withPreloadScopes()` to constrain included relations. See [Scopes on reads](./reading-data.md#scopes-on-reads).
+
 Lower-level building blocks (`DocumentBuilder`, `JsonApiRegistry`, `parseQueryParams`, `deserializeResourceDocument`, `toErrorDocument`, …) are all exported from `@evoactivity/jsonapi-adonis` if you need to assemble custom behavior. See [Low-level building blocks](./low-level.md) for how to use them outside a request.
 
 ## Configuration

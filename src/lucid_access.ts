@@ -57,6 +57,13 @@ export function setAttribute(row: LucidRow, attribute: string, value: unknown): 
 }
 
 /**
+ * The runtime shape of Lucid's scopes bag, the object passed to
+ * withScopes(). Named scopes are methods on it; we invoke them by runtime
+ * name without knowing their signatures.
+ */
+export type DynamicScopes = Record<string, (...args: unknown[]) => unknown>
+
+/**
  * The structural slice of Lucid's model query builder this package drives
  * with runtime relation/column names. Lucid's own contract types preload()
  * with literal-name generics; real builders satisfy this shape through
@@ -65,4 +72,5 @@ export function setAttribute(row: LucidRow, attribute: string, value: unknown): 
 export type DynamicModelQuery = {
   preload(relation: string, callback?: (query: DynamicModelQuery) => void): unknown
   orderBy(column: string, direction: 'asc' | 'desc'): unknown
+  withScopes(callback: (scopes: DynamicScopes) => void): unknown
 }
