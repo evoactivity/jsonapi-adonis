@@ -1,8 +1,10 @@
 import type { ApplicationService } from '@adonisjs/core/types'
 import { HttpContext } from '@adonisjs/core/http'
+import { ModelQueryBuilder } from '@adonisjs/lucid/orm'
 import { JsonApiRegistry } from '../src/registry.ts'
 import { JsonApiRequestContext } from '../src/context.ts'
 import { defineConfig, type ResolvedJsonApiConfig } from '../src/define_config.ts'
+import { addPreloadScopes, type PreloadScopeMap, type PreloadScopeTree } from '../src/query.ts'
 import {
   registerJsonApiResource,
   type JsonApiResourceControllers,
@@ -50,6 +52,26 @@ export default class JsonApiProvider {
     ) {
       registerJsonApiResource(this, type, controllers, options)
     }
+
+    /**
+     * Constrains the preload query of included relations, keyed by relation
+     * name and applied at any depth. Chains after jsonApi.query() and
+     * composes with Lucid's own withScopes() (which handles the root):
+     *
+     * ```ts
+     * await jsonApi
+     *   .query(Article)
+     *   .withScopes((s) => s.published())
+     *   .withPreloadScopes({ comments: (s) => s.published() })
+     * ```
+     */
+    ModelQueryBuilder.macro(
+      'withPreloadScopes',
+      function (this: ModelQueryBuilder, scopes: PreloadScopeTree) {
+        addPreloadScopes(this, scopes)
+        return this
+      }
+    )
   }
 
   /**
@@ -79,5 +101,23 @@ declare module '@adonisjs/core/types' {
       controllers: JsonApiResourceControllers,
       options?: JsonApiResourceOptions
     ): void
+  }
+}
+
+/**
+ * Two augmentations: the contract is what callers hold off jsonApi.query()
+ * and Lucid's chainable methods, so they need the method there; the
+ * concrete class is what Macroable.macro() keys off (name must be a key of
+ * the instance type), so registering the macro needs it there too.
+ */
+declare module '@adonisjs/lucid/types/model' {
+  interface ModelQueryBuilderContract<Model extends LucidModel, Result = InstanceType<Model>> {
+    withPreloadScopes(scopes: PreloadScopeMap<Model>): this
+  }
+}
+
+declare module '@adonisjs/lucid/orm' {
+  interface ModelQueryBuilder {
+    withPreloadScopes(scopes: PreloadScopeTree): this
   }
 }

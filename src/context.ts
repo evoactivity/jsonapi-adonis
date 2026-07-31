@@ -6,7 +6,7 @@ import { parseQueryParams } from './params.ts'
 import { DocumentBuilder, type Paginatorish } from './document_builder.ts'
 import { loadRelation, relatedClient, type DynamicModelQuery } from './lucid_access.ts'
 import { LinkBuilder, type RouterContract } from './links.ts'
-import { applyIncludes, applySort, validateIncludeTree } from './query.ts'
+import { applyIncludes, applySort, preloadScopesFor, validateIncludeTree } from './query.ts'
 import { applyFilters, type FilterQuery } from './filters.ts'
 import {
   deserializeResourceDocument,
@@ -131,7 +131,8 @@ export class JsonApiRequestContext {
      * single place the bridge happens.
      */
     const dynamicQuery = query as unknown as DynamicModelQuery & FilterQuery
-    applyIncludes(dynamicQuery, this.params.include)
+    const preloadScopes = preloadScopesFor(query)
+    applyIncludes(dynamicQuery, this.params.include, model, preloadScopes)
     applySort(dynamicQuery, model, this.params.sort)
     applyFilters(dynamicQuery, model, this.#registry.resourceFor(model), this.params.filter)
     return query

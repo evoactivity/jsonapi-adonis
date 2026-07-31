@@ -76,7 +76,15 @@ export class AuthAccessTokenSchema extends BaseModel {
 }
 
 export class CommentSchema extends BaseModel {
-  static $columns = ['articleId', 'authorId', 'body', 'createdAt', 'id', 'updatedAt'] as const
+  static $columns = [
+    'articleId',
+    'authorId',
+    'body',
+    'createdAt',
+    'id',
+    'published',
+    'updatedAt',
+  ] as const
   $columns = CommentSchema.$columns
   @column()
   declare articleId: number
@@ -88,6 +96,8 @@ export class CommentSchema extends BaseModel {
   declare createdAt: DateTime
   @column({ isPrimary: true })
   declare id: number
+  @column()
+  declare published: boolean
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }
