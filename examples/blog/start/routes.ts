@@ -15,6 +15,7 @@ const AccessTokensController = () => import('#controllers/access_tokens_controll
 const ProfileController = () => import('#controllers/profile_controller')
 const ArticlesController = () => import('#controllers/articles_controller')
 const ArticleRelationshipsController = () => import('#controllers/article_relationships_controller')
+const PreloadScopesController = () => import('#controllers/preload_scopes_controller')
 
 router.get('/', () => {
   return { hello: 'world' }
@@ -45,6 +46,7 @@ router
           resource: ArticlesController,
           relationships: ArticleRelationshipsController,
         })
+        router.get('scoped-articles/:id', [PreloadScopesController, 'show'])
       })
       .as('jsonapi')
       .use(middleware.jsonApi())
