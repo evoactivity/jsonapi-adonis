@@ -105,7 +105,11 @@ Inside a request, links are namespaced by the route that served it. Outside a re
 Useful for queue-delivered payloads or webhook bodies that carry JSON:API documents:
 
 ```ts
-import { deserializeResourceDocument, verifyRelatedExist, JsonApiRegistry } from '@evoactivity/jsonapi-adonis'
+import {
+  deserializeResourceDocument,
+  verifyRelatedExist,
+  JsonApiRegistry,
+} from '@evoactivity/jsonapi-adonis'
 
 const registry = await app.container.make(JsonApiRegistry)
 const input = deserializeResourceDocument(Article, registry, payload, {

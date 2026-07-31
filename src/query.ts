@@ -1,9 +1,54 @@
 import type { LucidModel } from '@adonisjs/lucid/types/model'
 import type { IncludeTree, SortField } from './types.ts'
-import type { DynamicModelQuery } from './lucid_access.ts'
+import type { DynamicModelQuery, DynamicScopes } from './lucid_access.ts'
 import type { JsonApiRegistry } from './registry.ts'
 import { isRelationExposed } from './resource.ts'
 import { JsonApiException } from './errors.ts'
+
+/**
+ * A per-relation constraint applied to an included relation's preload
+ * query. The callback is the exact shape of Lucid's withScopes() callback,
+ * so a developer reuses the related model's own named scopes:
+ * `{ episodes: (scopes) => scopes.published() }`.
+ */
+export type PreloadScope = (scopes: DynamicScopes) => void
+
+/**
+ * Relation name → preload scope. Keyed by relation name, applied wherever
+ * that relation is preloaded in an include tree, at any depth.
+ */
+export type PreloadScopeMap = Record<string, PreloadScope>
+
+/**
+ * Preload-scope maps are attached to a query builder out of band so the
+ * `withPreloadScopes()` builder macro (which only has `this`) and this
+ * module (which builds the include preloads) can share one map. A WeakMap
+ * keyed by the builder keeps it off the builder's own surface and lets it
+ * be garbage collected with the query.
+ */
+const preloadScopeMaps = new WeakMap<object, PreloadScopeMap>()
+
+/**
+ * Creates and registers a fresh preload-scope map for a query builder.
+ * Called once when the query is built; the returned map is mutated in
+ * place by later withPreloadScopes() calls and read at preload time.
+ */
+export function preloadScopesFor(query: object): PreloadScopeMap {
+  const map: PreloadScopeMap = {}
+  preloadScopeMaps.set(query, map)
+  return map
+}
+
+/**
+ * Merges scopes into a query builder's preload-scope map, the entry point
+ * for the withPreloadScopes() macro. Safe to call before or after the
+ * includes are built: the map is read at preload (execution) time.
+ */
+export function addPreloadScopes(query: object, scopes: PreloadScopeMap): void {
+  const existing = preloadScopeMaps.get(query)
+  if (existing) Object.assign(existing, scopes)
+  else preloadScopeMaps.set(query, { ...scopes })
+}
 
 /**
  * Validates every path of an include tree against the model's relationship
@@ -41,12 +86,26 @@ function validateIncludeLevel(
 }
 
 /**
- * Applies an include tree as nested preloads on a model query.
+ * Applies an include tree as nested preloads on a model query. Each
+ * preloaded relation is constrained by the matching entry in the
+ * preload-scope map, if any, before recursing, so a scope keyed by
+ * relation name applies wherever that relation appears in the tree, at any
+ * depth. The map is read here, inside the preload callback, which Lucid
+ * invokes at execution time, so scopes added after the query is built
+ * (a `withPreloadScopes()` chained after `jsonApi.query()`) still apply.
  */
-export function applyIncludes(query: DynamicModelQuery, tree: IncludeTree): void {
+export function applyIncludes(
+  query: DynamicModelQuery,
+  tree: IncludeTree,
+  Model?: LucidModel,
+  preloadScopes?: PreloadScopeMap
+): void {
   for (const [name, subTree] of Object.entries(tree)) {
+    const RelatedModel = Model?.$relationsDefinitions.get(name)?.relatedModel()
     query.preload(name, (subQuery) => {
-      applyIncludes(subQuery, subTree)
+      const scope = preloadScopes?.[name]
+      if (scope) subQuery.withScopes(scope)
+      applyIncludes(subQuery, subTree, RelatedModel, preloadScopes)
     })
   }
 }

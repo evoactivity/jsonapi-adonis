@@ -7,6 +7,7 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id').notNullable()
       table.text('body').notNullable()
+      table.boolean('published').notNullable().defaultTo(true)
       table
         .integer('article_id')
         .unsigned()
