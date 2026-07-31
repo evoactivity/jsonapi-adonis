@@ -4,7 +4,7 @@ import {
   preloadScopesFor,
   addPreloadScopes,
   type PreloadScope,
-  type PreloadScopeMap,
+  type PreloadScopeTree,
 } from '../../src/query.ts'
 import { Article } from '../fixtures/models.ts'
 
@@ -61,28 +61,40 @@ const authorScope: PreloadScope = (scopes) => {
 }
 
 test.group('applyIncludes preload scopes', () => {
-  test('applies the matching scope to a relation via withScopes', ({ assert }) => {
+  test('applies a bare-callback entry to a relation via withScopes', ({ assert }) => {
     const root = stubQuery()
-    const map: PreloadScopeMap = { comments: commentsScope }
-    applyIncludes(anyQuery(root), { comments: {} }, Article, map)
+    const tree: PreloadScopeTree = { comments: commentsScope }
+    applyIncludes(anyQuery(root), { comments: {} }, Article, tree)
     root.runPreloads()
 
     assert.deepEqual(root.preloads.comments.calls, [['withScopes', commentsScope]])
   })
 
-  test('applies scopes at any depth, keyed by relation name', ({ assert }) => {
+  test('descends preload to scope nested includes, typed per level', ({ assert }) => {
     const root = stubQuery()
-    const map: PreloadScopeMap = { author: authorScope }
-    applyIncludes(anyQuery(root), { comments: { author: {} } }, Article, map)
+    // structural: scope comments, and its nested author, by path
+    const tree: PreloadScopeTree = {
+      comments: { scope: commentsScope, preload: { author: authorScope } },
+    }
+    applyIncludes(anyQuery(root), { comments: { author: {} } }, Article, tree)
     root.runPreloads()
 
-    // comments has no scope in the map
-    assert.deepEqual(root.preloads.comments.calls, [])
-    // author, nested under comments, gets its scope
+    assert.deepEqual(root.preloads.comments.calls, [['withScopes', commentsScope]])
     assert.deepEqual(root.preloads.comments.preloads.author.calls, [['withScopes', authorScope]])
   })
 
-  test('a relation with no scope is left untouched', ({ assert }) => {
+  test('an object entry with no scope only descends', ({ assert }) => {
+    const root = stubQuery()
+    const tree: PreloadScopeTree = { comments: { preload: { author: authorScope } } }
+    applyIncludes(anyQuery(root), { comments: { author: {} } }, Article, tree)
+    root.runPreloads()
+
+    // comments itself is unscoped; only its nested author is scoped
+    assert.deepEqual(root.preloads.comments.calls, [])
+    assert.deepEqual(root.preloads.comments.preloads.author.calls, [['withScopes', authorScope]])
+  })
+
+  test('a relation with no entry is left untouched', ({ assert }) => {
     const root = stubQuery()
     applyIncludes(anyQuery(root), { comments: {}, tags: {} }, Article, {})
     root.runPreloads()
@@ -91,27 +103,27 @@ test.group('applyIncludes preload scopes', () => {
     assert.deepEqual(root.preloads.tags.calls, [])
   })
 
-  test('reads the map at preload time, so scopes added after apply still count', ({ assert }) => {
+  test('reads the tree at preload time, so scopes added after apply still count', ({ assert }) => {
     const root = stubQuery()
-    const map: PreloadScopeMap = {}
-    // includes built first, with an empty map — as jsonApi.query() does
-    applyIncludes(anyQuery(root), { comments: {} }, Article, map)
+    const tree: PreloadScopeTree = {}
+    // includes built first, with an empty tree — as jsonApi.query() does
+    applyIncludes(anyQuery(root), { comments: {} }, Article, tree)
     // scope added afterwards — as a chained withPreloadScopes() would
-    map.comments = commentsScope
+    tree.comments = commentsScope
     root.runPreloads()
 
     assert.deepEqual(root.preloads.comments.calls, [['withScopes', commentsScope]])
   })
 })
 
-test.group('preload scope map', () => {
-  test('addPreloadScopes merges into the builder map from preloadScopesFor', ({ assert }) => {
+test.group('preload scope tree', () => {
+  test('addPreloadScopes merges into the builder tree from preloadScopesFor', ({ assert }) => {
     // the real flow: query() calls preloadScopesFor once, the macro merges
     const builder = {}
-    const map = preloadScopesFor(builder)
+    const tree = preloadScopesFor(builder)
     addPreloadScopes(builder, { comments: commentsScope })
     addPreloadScopes(builder, { author: authorScope })
 
-    assert.deepEqual(map, { comments: commentsScope, author: authorScope })
+    assert.deepEqual(tree, { comments: commentsScope, author: authorScope })
   })
 })
