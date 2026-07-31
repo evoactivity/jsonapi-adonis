@@ -1,5 +1,6 @@
 packages:
   - '.'
+  - 'examples/blog'
 
 onlyBuiltDependencies:
   - better-sqlite3
