@@ -4,7 +4,7 @@ import { ModelQueryBuilder } from '@adonisjs/lucid/orm'
 import { JsonApiRegistry } from '../src/registry.ts'
 import { JsonApiRequestContext } from '../src/context.ts'
 import { defineConfig, type ResolvedJsonApiConfig } from '../src/define_config.ts'
-import { addPreloadScopes, type PreloadScopeMap } from '../src/query.ts'
+import { addPreloadScopes, type PreloadScopeMap, type PreloadScopeTree } from '../src/query.ts'
 import {
   registerJsonApiResource,
   type JsonApiResourceControllers,
@@ -67,7 +67,7 @@ export default class JsonApiProvider {
      */
     ModelQueryBuilder.macro(
       'withPreloadScopes',
-      function (this: ModelQueryBuilder, scopes: PreloadScopeMap) {
+      function (this: ModelQueryBuilder, scopes: PreloadScopeTree) {
         addPreloadScopes(this, scopes)
         return this
       }
@@ -112,12 +112,12 @@ declare module '@adonisjs/core/types' {
  */
 declare module '@adonisjs/lucid/types/model' {
   interface ModelQueryBuilderContract<Model extends LucidModel, Result = InstanceType<Model>> {
-    withPreloadScopes(scopes: PreloadScopeMap): this
+    withPreloadScopes(scopes: PreloadScopeMap<Model>): this
   }
 }
 
 declare module '@adonisjs/lucid/orm' {
   interface ModelQueryBuilder {
-    withPreloadScopes(scopes: PreloadScopeMap): this
+    withPreloadScopes(scopes: PreloadScopeTree): this
   }
 }

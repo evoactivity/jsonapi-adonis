@@ -217,7 +217,7 @@ class Comment extends BaseModel {
 }
 ```
 
-Apply it to the primary data with Lucid's own `withScopes()`, and to included relations with `withPreloadScopes()`, keyed by relation name:
+Apply it to the primary data with Lucid's own `withScopes()`, and to included relations with `withPreloadScopes()`, keyed by the model's relations:
 
 ```ts
 const articles = await jsonApi
@@ -225,16 +225,31 @@ const articles = await jsonApi
   .withScopes((scopes) => scopes.published()) // the articles themselves
   .withPreloadScopes({
     comments: (scopes) => scopes.published(), // ?include=comments
-    author: (scopes) => scopes.active(), // ?include=…author, at any depth
+    author: (scopes) => scopes.active(), // ?include=author
   })
   .paginate(...jsonApi.page)
 
 return jsonApi.render(articles)
 ```
 
+The map is **fully typed**: keys autocomplete to `Article`'s relations, and each callback's `scopes` is the related model's scope bag, exactly like `withScopes()`. A wrong relation name or a scope that model does not define is a compile error.
+
+For nested includes, give the value an object with a `preload` of its own, typed to the next model down:
+
+```ts
+.withPreloadScopes({
+  seasons: {
+    scope: (scopes) => scopes.visible(), // scopes: Season's
+    preload: {
+      episodes: (scopes) => scopes.visible(), // scopes: Episode's
+    },
+  },
+})
+```
+
 - `withScopes()` is Lucid's own; it constrains the root query. Nothing library-specific.
-- `withPreloadScopes()` is what this package adds. The include preloads are built for you from `?include=`, so you cannot reach them at the call site; this map lets you scope them. Each callback is the exact shape of a `withScopes()` callback, so you reuse the related model's own named scopes rather than re-expressing the rule.
-- **Keyed by relation name, applied at any depth.** A `comments` entry constrains comments whether they are included directly or nested under another path. A relation with no entry is left unconstrained.
+- `withPreloadScopes()` is what this package adds. The include preloads are built for you from `?include=`, so you cannot reach them at the call site; this constrains them. Each callback is the exact shape of a `withScopes()` callback, so you reuse the related model's own named scopes rather than re-expressing the rule.
+- **Structural, typed at every level.** An entry is either a bare callback (scope that relation) or `{ scope?, preload? }` to also constrain deeper includes. Scopes apply along the path you write, so a relation on one branch never leaks to a same-named relation on another. A relation with no entry is left unconstrained.
 - **Order in the chain does not matter.** Preload constraints run when Lucid loads the relation, at execution, so `withPreloadScopes()` may come before or after other builder calls.
 
 This is deliberately explicit and per-query. Visibility is a security concern, and a per-endpoint decision keeps it in plain sight in the code, rather than buried in a resource default that a new endpoint silently inherits or silently forgets. When several endpoints share a rule, factor the map into a shared helper; do not hide it.
