@@ -58,6 +58,8 @@ The deserializer enforces the spec's error semantics for you:
 
 Attribute names are mapped back from their serialized names to model property names. Unknown attributes are dropped, and your validator remains the gatekeeper.
 
+A relation hidden by [`exposeRelationships`](./reading-data.md#static-exposerelationships) counts as unknown here. A `relationships` member naming one is rejected with the same `400`, so hiding a relation closes the resource-body write path too.
+
 ## Relationship endpoints
 
 The spec defines URLs for reading and editing a relationship itself, without touching the resources on either end. Editing linkage through these URLs sends deltas rather than snapshots, which protects concurrent editors from overwriting each other; the [links guide](./links.md) walks through a lost-update example. `jsonApiResource` registers the endpoints when you provide a `relationships` controller:
@@ -87,6 +89,8 @@ export default class ArticleRelationshipsController {
 ```
 
 To-one relationships accept `PATCH` only (a `405` otherwise). For `hasMany`, full replacement and removal are rejected with `403`. The spec explicitly allows a server to refuse those, and the natural write path for a hasMany is the child's own belongsTo. `manyToMany` supports everything. `hasManyThrough` relationships are derived, and all writes through them are rejected.
+
+All five routes respect the resource's [`exposeRelationships`](./reading-data.md#static-exposerelationships). A relation the resource does not expose returns `404` here as well, so registering this controller cannot reopen something the resource hides.
 
 ---
 

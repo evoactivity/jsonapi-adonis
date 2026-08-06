@@ -242,7 +242,7 @@ export class JsonApiRequestContext {
    */
   async renderRelated(row: LucidRow, name: string): Promise<Document> {
     const Model = row.constructor as LucidModel
-    const relation = getRelationOrFail(Model, name)
+    const relation = getRelationOrFail(Model, name, this.#registry)
     const relationName = relation.relationName
     await loadRelation(row, relationName)
     const loaded = row.$preloaded[relationName] as LucidRow | LucidRow[] | null | undefined

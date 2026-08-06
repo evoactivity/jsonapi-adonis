@@ -3,6 +3,7 @@ import type { LucidModel, LucidRow } from '@adonisjs/lucid/types/model'
 import { loadRelation, relatedClient, setAttribute } from './lucid_access.ts'
 import { JsonApiException } from './errors.ts'
 import { verifyRelatedExist } from './deserializer.ts'
+import { isRelationExposed } from './resource.ts'
 import type { JsonApiRegistry } from './registry.ts'
 import type { ResourceIdentifier } from './types.ts'
 
@@ -23,11 +24,17 @@ function invalidLinkage(detail: string): JsonApiException {
  * Resolves a relationship by name, accepting both the Lucid relation name
  * and its kebab-cased URL segment (received-comments → receivedComments).
  * Returns the booted relation; use relation.relationName for Lucid calls.
+ *
+ * A relation the resource does not expose is reported as missing rather than
+ * forbidden, so a hidden relation cannot be told apart from one that was
+ * never defined. The registry is required so a new call site cannot reach a
+ * relation without passing the visibility rule.
  */
-export function getRelationOrFail(Model: LucidModel, name: string) {
-  const relation =
-    Model.$relationsDefinitions.get(name) ?? Model.$relationsDefinitions.get(string.camelCase(name))
-  if (!relation || relation.serializeAs === null) {
+export function getRelationOrFail(Model: LucidModel, name: string, registry: JsonApiRegistry) {
+  const key = Model.$relationsDefinitions.has(name) ? name : string.camelCase(name)
+  const relation = Model.$relationsDefinitions.get(key)
+
+  if (!relation || !isRelationExposed(registry.resourceFor(Model), key, relation)) {
     throw new JsonApiException(
       { title: 'Not Found', detail: `"${name}" is not a relationship of ${Model.name}` },
       { status: 404 }
@@ -90,7 +97,7 @@ export async function updateRelationship(
   action: RelationshipAction
 ): Promise<void> {
   const Model = row.constructor as LucidModel
-  const relation = getRelationOrFail(Model, name)
+  const relation = getRelationOrFail(Model, name, registry)
   const relationName = relation.relationName
   const relatedType = registry.typeFor(relation.relatedModel())
 
@@ -165,7 +172,7 @@ export async function fetchLinkage(
   registry: JsonApiRegistry
 ): Promise<ResourceIdentifier | ResourceIdentifier[] | null> {
   const Model = row.constructor as LucidModel
-  const relation = getRelationOrFail(Model, name)
+  const relation = getRelationOrFail(Model, name, registry)
   const relationName = relation.relationName
   await loadRelation(row, relationName)
   const loaded = row.$preloaded[relationName] as LucidRow | LucidRow[] | null | undefined

@@ -37,10 +37,14 @@ test.group('kebab-case types and URLs', () => {
   })
 
   test('kebab URL segments resolve back to Lucid relation names', ({ assert }) => {
-    const relation = getRelationOrFail(User, 'received-comments')
+    const registry = new JsonApiRegistry()
+    const relation = getRelationOrFail(User, 'received-comments', registry)
     assert.equal(relation.relationName, 'receivedComments')
     // the Lucid name itself still works too
-    assert.equal(getRelationOrFail(User, 'receivedComments').relationName, 'receivedComments')
+    assert.equal(
+      getRelationOrFail(User, 'receivedComments', registry).relationName,
+      'receivedComments'
+    )
   })
 
   test('routes-strategy links pass the kebab segment as the route param', ({ assert }) => {

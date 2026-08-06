@@ -121,6 +121,20 @@ static exposeRelationships = ['author', 'tags']
 
 Hidden relations are hidden from `?include=` too. Asking to include one is rejected with a 400, exactly like an include path that does not exist, and no preloading happens for it. This keeps a deliberately hidden relation from being loaded (and paid for) just to be discarded at serialization.
 
+A hidden relation is also unreachable through the relationship endpoints, for reads and writes both:
+
+```
+GET    /articles/1/comments                 404
+GET    /articles/1/relationships/comments   404
+PATCH  /articles/1/relationships/comments   404
+POST   /articles/1/relationships/comments   404
+DELETE /articles/1/relationships/comments   404
+```
+
+The status is 404 rather than 403, so a hidden relation cannot be told apart from one that was never defined. A 403 would confirm the relation exists, which is the thing you were hiding.
+
+The same applies to the `relationships` member of a `POST` or `PATCH` body. A hidden relation there is rejected with the same 400 an unknown member gets. Hiding a relation removes it from the API everywhere: documents, `?include=`, the relationship endpoints, and write bodies.
+
 ### `static filters`
 
 Declares the `?filter[...]` parameters this resource accepts. Nothing is filterable without it. Covered in depth in [Filtering](#filtering) below.
