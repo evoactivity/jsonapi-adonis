@@ -1,0 +1,5 @@
+# Generated files. Prettier rewrites both, which buries real changes in
+# reformatting noise. pnpm owns the lockfile and release-plan owns the
+# changelog, so neither should be hand-formatted.
+pnpm-lock.yaml
+CHANGELOG.md

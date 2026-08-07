@@ -1,5 +1,6 @@
 import type { LucidModel } from '@adonisjs/lucid/types/model'
 import { JsonApiException } from './errors.ts'
+import { isRelationExposed } from './resource.ts'
 import type { ResourceIdentifier } from './types.ts'
 import type { JsonApiRegistry } from './registry.ts'
 
@@ -174,7 +175,9 @@ function deserializeRelationships(
   for (const [name, value] of Object.entries(raw)) {
     const pointer = `/data/relationships/${name}`
     const relation = Model.$relationsDefinitions.get(name)
-    if (!relation || relation.serializeAs === null) {
+    // isRelationExposed covers serializeAs: null as well, and a hidden
+    // relation reads the same as an unknown one on purpose.
+    if (!relation || !isRelationExposed(registry.resourceFor(Model), name, relation)) {
       throw invalidDocument(`"${name}" is not a known relationship of ${Model.name}`, pointer)
     }
     if (!isPlainObject(value) || !('data' in value)) {
