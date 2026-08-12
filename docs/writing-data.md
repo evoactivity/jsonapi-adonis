@@ -92,6 +92,8 @@ To-one relationships accept `PATCH` only (a `405` otherwise). For `hasMany`, ful
 
 All five routes respect the resource's [`exposeRelationships`](./reading-data.md#static-exposerelationships). A relation the resource does not expose returns `404` here as well, so registering this controller cannot reopen something the resource hides.
 
+Register a subset of these routes with the `relationshipsOnly` option; see [Selecting routes](./reference.md#selecting-routes) in the reference.
+
 ---
 
 Next: [Links](./links.md) · [Errors & negotiation](./errors.md) · [Reference](./reference.md)

@@ -65,6 +65,43 @@ Use `make:jsonapi:controller` when the auto-derived resource is all you need. It
 
 With `--routes`, the command appends a ready-made `router.jsonApiResource(...)` group to `start/routes.ts`, skipping if the type is already registered. Move it inside your versioned API group if you have one. Without the flag, the registration snippets are printed for you to paste.
 
+## Selecting routes
+
+`router.jsonApiResource(type, controllers, options)` registers every route the given controllers support. The third `options` argument narrows that with two independent lists. `only` selects resource routes; `relationshipsOnly` selects relationship routes. Each token matches its controller method name.
+
+`only` tokens (the `resource` controller):
+
+| Token     | Method + path          |
+| --------- | ---------------------- |
+| `index`   | `GET /articles`        |
+| `store`   | `POST /articles`       |
+| `show`    | `GET /articles/:id`    |
+| `update`  | `PATCH /articles/:id`  |
+| `destroy` | `DELETE /articles/:id` |
+
+`relationshipsOnly` tokens (the `relationships` controller):
+
+| Token     | Method + path                                  |
+| --------- | ---------------------------------------------- |
+| `show`    | `GET /articles/:id/relationships/:relation`    |
+| `replace` | `PATCH /articles/:id/relationships/:relation`  |
+| `add`     | `POST /articles/:id/relationships/:relation`   |
+| `remove`  | `DELETE /articles/:id/relationships/:relation` |
+| `related` | `GET /articles/:id/:relation`                  |
+
+Omit a list and every route on that axis registers; pass it and only the listed tokens do. The two are independent, so subsetting one leaves the other whole. To keep all resource routes but only the relationship reads:
+
+```ts
+router.jsonApiResource(
+  'articles',
+  {
+    resource: () => import('#controllers/articles_controller'),
+    relationships: () => import('#controllers/article_relationships_controller'),
+  },
+  { relationshipsOnly: ['show', 'related'] }
+)
+```
+
 ## Roadmap
 
 - **[Atomic Operations](https://jsonapi.org/ext/atomic/)**, the official JSON:API extension for performing multiple writes in a single request, applied in one transaction. Either every operation succeeds or none do. This is also the planned answer for the bulk-write cases individual endpoints handle awkwardly, like clearing or re-parenting a `hasMany` relationship (rejected with `403` today), which decomposes cleanly into explicit per-child operations inside one atomic request.
