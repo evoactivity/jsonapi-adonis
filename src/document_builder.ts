@@ -111,7 +111,7 @@ export class DocumentBuilder {
     const Model = row.constructor as LucidModel
     const ResourceClass = this.#registry.resourceForRow(row)
     const definition = instantiateResource(ResourceClass, row, this.#ctx)
-    const type = this.#registry.typeFor(Model)
+    const type = this.#registry.typeForRow(row)
     const id = definition.id()
     const allowedFields = this.#params.fields[type]
 
@@ -168,14 +168,20 @@ export class DocumentBuilder {
         relationship.data = this.#linkage(preloaded, subInclude)
       } else if (relation.type === 'belongsTo') {
         // Resource linkage for an unloaded belongsTo is derivable from the
-        // foreign key without touching the database.
+        // foreign key without touching the database. Not when the target is
+        // an STI base (its resource declares subtypes): a bare foreign key
+        // cannot name a concrete type, and guessing the base type creates a
+        // second identity for the same row. The member keeps its links and
+        // omits data; loading the relation gives concrete linkage.
         relation.boot()
-        const foreignKey = (relation as unknown as { foreignKey: string }).foreignKey
-        const value = getAttribute(row, foreignKey)
-        relationship.data =
-          typeof value === 'string' || typeof value === 'number' || typeof value === 'bigint'
-            ? { type: this.#registry.typeFor(relation.relatedModel()), id: String(value) }
-            : null
+        if (!this.#registry.resourceFor(relation.relatedModel()).subtypes) {
+          const foreignKey = (relation as unknown as { foreignKey: string }).foreignKey
+          const value = getAttribute(row, foreignKey)
+          relationship.data =
+            typeof value === 'string' || typeof value === 'number' || typeof value === 'bigint'
+              ? { type: this.#registry.typeFor(relation.relatedModel()), id: String(value) }
+              : null
+        }
       }
 
       const links = this.#links.relationshipLinks(context.type, context.id, serializedName)
@@ -198,17 +204,16 @@ export class DocumentBuilder {
 
     const identify = (related: LucidRow): ResourceIdentifier => {
       if (subInclude) this.#visitIncluded(related, subInclude)
-      const RelatedModel = related.constructor as LucidModel
       const ResourceClass = this.#registry.resourceForRow(related)
       const definition = instantiateResource(ResourceClass, related, this.#ctx)
-      return { type: this.#registry.typeFor(RelatedModel), id: definition.id() }
+      return { type: this.#registry.typeForRow(related), id: definition.id() }
     }
 
     return Array.isArray(preloaded) ? preloaded.map(identify) : identify(preloaded)
   }
 
   #visitIncluded(row: LucidRow, include: IncludeTree) {
-    const type = this.#registry.typeFor(row.constructor as LucidModel)
+    const type = this.#registry.typeForRow(row)
     const ResourceClass = this.#registry.resourceForRow(row)
     const id = instantiateResource(ResourceClass, row, this.#ctx).id()
     const key = `${type}:${id}`

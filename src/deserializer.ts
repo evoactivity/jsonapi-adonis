@@ -187,7 +187,8 @@ function deserializeRelationships(
       )
     }
     relation.boot()
-    const relatedType = registry.typeFor(relation.relatedModel())
+    const acceptedTypes = registry.acceptedTypesFor(relation.relatedModel())
+    const listed = () => acceptedTypes.map((type) => `"${type}"`).join(' or ')
     const linkage = value.data
 
     if (relation.type === 'belongsTo') {
@@ -197,9 +198,9 @@ function deserializeRelationships(
         continue
       }
       const identifier = parseIdentifier(linkage, `${pointer}/data`)
-      if (identifier.type !== relatedType) {
+      if (!acceptedTypes.includes(identifier.type)) {
         throw conflict(
-          `Relationship "${name}" expects resources of type "${relatedType}"`,
+          `Relationship "${name}" expects resources of type ${listed()}`,
           `${pointer}/data/type`
         )
       }
@@ -214,9 +215,9 @@ function deserializeRelationships(
       }
       toMany[name] = linkage.map((entry, index) => {
         const identifier = parseIdentifier(entry, `${pointer}/data/${index}`)
-        if (identifier.type !== relatedType) {
+        if (!acceptedTypes.includes(identifier.type)) {
           throw conflict(
-            `Relationship "${name}" expects resources of type "${relatedType}"`,
+            `Relationship "${name}" expects resources of type ${listed()}`,
             `${pointer}/data/${index}/type`
           )
         }
