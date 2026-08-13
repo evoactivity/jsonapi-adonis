@@ -5,6 +5,17 @@ import type { ResourceIdentifier } from './types.ts'
 import type { JsonApiRegistry } from './registry.ts'
 
 /**
+ * A relationship write's references to existing rows. claims carries the
+ * identifiers as the client sent them, so verifyRelatedExist can check a
+ * claimed type against the row it names.
+ */
+export type RelatedReference = {
+  relation: string
+  ids: string[]
+  claims?: ResourceIdentifier[]
+}
+
+/**
  * Result of deserializing a JSON:API resource document into Lucid-friendly
  * shapes:
  * - `attributes` uses model attribute names (serialized names mapped back)
@@ -164,9 +175,9 @@ function deserializeRelationships(
   registry: JsonApiRegistry,
   raw: unknown,
   attributes: Record<string, unknown>
-): { toMany: Record<string, string[]>; references: { relation: string; ids: string[] }[] } {
+): { toMany: Record<string, string[]>; references: RelatedReference[] } {
   const toMany: Record<string, string[]> = {}
-  const references: { relation: string; ids: string[] }[] = []
+  const references: RelatedReference[] = []
   if (raw === undefined) return { toMany, references }
   if (!isPlainObject(raw)) {
     throw invalidDocument('The "relationships" member must be an object', '/data/relationships')
@@ -205,7 +216,7 @@ function deserializeRelationships(
         )
       }
       attributes[foreignKey] = identifier.id
-      references.push({ relation: name, ids: [identifier.id] })
+      references.push({ relation: name, ids: [identifier.id], claims: [identifier] })
     } else if (relation.type === 'manyToMany' || relation.type === 'hasMany') {
       if (!Array.isArray(linkage)) {
         throw invalidDocument(
@@ -223,7 +234,11 @@ function deserializeRelationships(
         }
         return identifier.id
       })
-      references.push({ relation: name, ids: toMany[name] })
+      references.push({
+        relation: name,
+        ids: toMany[name],
+        claims: linkage.map((entry, index) => parseIdentifier(entry, `${pointer}/data/${index}`)),
+      })
     } else {
       throw new JsonApiException(
         {
@@ -245,9 +260,10 @@ function deserializeRelationships(
  */
 export async function verifyRelatedExist(
   Model: LucidModel,
-  references: { relation: string; ids: string[] }[]
+  references: RelatedReference[],
+  registry: JsonApiRegistry
 ): Promise<void> {
-  for (const { relation: name, ids } of references) {
+  for (const { relation: name, ids, claims } of references) {
     if (ids.length === 0) continue
     const relation = Model.$relationsDefinitions.get(name)!
     relation.boot()
@@ -264,6 +280,30 @@ export async function verifyRelatedExist(
         },
         { status: 404 }
       )
+    }
+
+    // For an STI family, an identifier's type is part of the identity: a
+    // claimed type the row's discriminator contradicts names a resource
+    // that does not exist, same as an unknown id. Without this check the
+    // shared id space would let a mislabelled identifier attach silently.
+    if (claims?.length && registry.resourceFor(RelatedModel).subtypes) {
+      const byId = new Map(rows.map((row) => [String(row.$primaryKeyValue), row]))
+      const wrong = claims.filter((claim) => {
+        const row = byId.get(claim.id)
+        return row !== undefined && registry.typeForRow(row) !== claim.type
+      })
+      if (wrong.length) {
+        throw new JsonApiException(
+          {
+            title: 'Not Found',
+            detail: `Related resources do not exist: ${wrong
+              .map((claim) => `${claim.type}/${claim.id}`)
+              .join(', ')}`,
+            source: { pointer: `/data/relationships/${name}` },
+          },
+          { status: 404 }
+        )
+      }
     }
   }
 }

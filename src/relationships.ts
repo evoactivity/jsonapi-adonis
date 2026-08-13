@@ -114,7 +114,11 @@ export async function updateRelationship(
     if (identifiers === null) {
       setAttribute(row, foreignKey, null)
     } else {
-      await verifyRelatedExist(Model, [{ relation: relationName, ids: [identifiers[0].id] }])
+      await verifyRelatedExist(
+        Model,
+        [{ relation: relationName, ids: [identifiers[0].id], claims: identifiers }],
+        registry
+      )
       setAttribute(row, foreignKey, identifiers[0].id)
     }
     await row.save()
@@ -124,7 +128,11 @@ export async function updateRelationship(
   if (relation.type === 'manyToMany') {
     const identifiers = parseLinkage(body, acceptedTypes, 'to-many')!
     const ids = identifiers.map((identifier) => identifier.id)
-    await verifyRelatedExist(Model, [{ relation: relationName, ids }])
+    await verifyRelatedExist(
+      Model,
+      [{ relation: relationName, ids, claims: identifiers }],
+      registry
+    )
     const related = relatedClient(row, relationName)
 
     if (action === 'replace') {
@@ -151,7 +159,11 @@ export async function updateRelationship(
     }
     const identifiers = parseLinkage(body, acceptedTypes, 'to-many')!
     const ids = identifiers.map((identifier) => identifier.id)
-    await verifyRelatedExist(Model, [{ relation: relationName, ids }])
+    await verifyRelatedExist(
+      Model,
+      [{ relation: relationName, ids, claims: identifiers }],
+      registry
+    )
     const RelatedModel = relation.relatedModel()
     const children = await RelatedModel.query().whereIn(RelatedModel.primaryKey, ids)
     await relatedClient(row, relationName).saveMany(children)

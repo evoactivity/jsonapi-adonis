@@ -184,7 +184,7 @@ export class JsonApiRequestContext {
       expectedId: options.expectedId,
       allowClientIds: this.#config.allowClientIds,
     })
-    await verifyRelatedExist(model, result.references)
+    await verifyRelatedExist(model, result.references, this.#registry)
     return result
   }
 

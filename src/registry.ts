@@ -41,6 +41,16 @@ export class JsonApiRegistry {
         throw new Error(`JSON:API resource "${resource.name}" must define a static model property`)
       }
       this.#byModel.set(resource.model(), resource)
+
+      // A base resource registers its declared family, so one import line
+      // covers an STI family. Explicit registrations win: a subtype whose
+      // model already has a resource is left alone, which also bounds the
+      // recursion.
+      for (const subtype of resource.subtypes?.() ?? []) {
+        if (subtype.model && !this.#byModel.has(subtype.model())) {
+          this.register([subtype])
+        }
+      }
     }
     return this
   }

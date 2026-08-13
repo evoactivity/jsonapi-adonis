@@ -4,6 +4,7 @@ import type { BelongsTo, HasMany, ManyToMany } from '@adonisjs/lucid/types/relat
 import User from '#models/user'
 import Comment from '#models/comment'
 import Tag from '#models/tag'
+import Attachment from '#models/attachment'
 
 export default class Article extends ArticleSchema {
   @belongsTo(() => User, { foreignKey: 'authorId' })
@@ -14,4 +15,7 @@ export default class Article extends ArticleSchema {
 
   @manyToMany(() => Tag, { pivotTable: 'article_tags' })
   declare tags: ManyToMany<typeof Tag>
+
+  @manyToMany(() => Attachment, { pivotTable: 'article_attachments' })
+  declare attachments: ManyToMany<typeof Attachment>
 }

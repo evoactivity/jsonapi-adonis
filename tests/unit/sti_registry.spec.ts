@@ -140,6 +140,26 @@ test.group('registry: resolveResource', () => {
   })
 })
 
+test.group('registry: subtypes register with their base', () => {
+  test('registering the base registers every declared subtype', ({ assert }) => {
+    const reg = new JsonApiRegistry().register([SportsTeamResource])
+
+    assert.equal(reg.typeFor(FootballTeam), 'football-teams')
+    assert.equal(reg.typeFor(RugbyTeam), 'rugby-teams')
+    assert.strictEqual(reg.resourceFor(FootballTeam), FootballTeamResource)
+  })
+
+  test('an explicitly registered subtype is not overwritten', ({ assert }) => {
+    class CustomFootballResource extends JsonApiResource<FootballTeam> {
+      static type = 'custom-football-teams'
+      static model = () => FootballTeam
+    }
+    const reg = new JsonApiRegistry().register([CustomFootballResource, SportsTeamResource])
+
+    assert.strictEqual(reg.resourceFor(FootballTeam), CustomFootballResource)
+  })
+})
+
 test.group('registry: typeName as the single home for type derivation', () => {
   test('a resource overriding typeName controls its type everywhere', ({ assert }) => {
     class VersionedTeamResource extends JsonApiResource<FootballTeam> {

@@ -8,6 +8,8 @@ export default defineConfig({
   resources: [
     () => import('#resources/article_resource'),
     () => import('#resources/user_resource'),
+    // Registering the STI base registers its declared subtypes with it
+    () => import('#resources/attachment_resource'),
   ],
 
   /**
