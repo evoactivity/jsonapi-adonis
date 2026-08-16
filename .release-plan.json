@@ -2,8 +2,8 @@
   "solution": {
     "@evoactivity/jsonapi-adonis": {
       "impact": "minor",
-      "oldVersion": "0.2.0",
-      "newVersion": "0.3.0",
+      "oldVersion": "0.3.0",
+      "newVersion": "0.4.0",
       "tagName": "latest",
       "constraints": [
         {
@@ -14,5 +14,5 @@
       "pkgJSONPath": "./package.json"
     }
   },
-  "description": "## Release (2026-08-12)\n\n* @evoactivity/jsonapi-adonis 0.3.0 (minor)\n\n#### :rocket: Enhancement\n* `@evoactivity/jsonapi-adonis`\n  * [#14](https://github.com/evoactivity/jsonapi-adonis/pull/14) Add relationshipsOnly to select relationship routes (#13) ([@evoactivity](https://github.com/evoactivity))\n  * [#11](https://github.com/evoactivity/jsonapi-adonis/pull/11) Gate every relationship path on exposeRelationships ([@evoactivity](https://github.com/evoactivity))\n\n#### Committers: 1\n- Liam ([@evoactivity](https://github.com/evoactivity))\n"
+  "description": "## Release (2026-08-16)\n\n* @evoactivity/jsonapi-adonis 0.4.0 (minor)\n\n#### :rocket: Enhancement\n* `@evoactivity/jsonapi-adonis`\n  * [#15](https://github.com/evoactivity/jsonapi-adonis/pull/15) Resolve concrete types for single-table inheritance families ([@evoactivity](https://github.com/evoactivity))\n\n#### Committers: 1\n- Liam ([@evoactivity](https://github.com/evoactivity))\n"
 }

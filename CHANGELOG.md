@@ -1,5 +1,16 @@
 # Changelog
 
+## Release (2026-08-16)
+
+* @evoactivity/jsonapi-adonis 0.4.0 (minor)
+
+#### :rocket: Enhancement
+* `@evoactivity/jsonapi-adonis`
+  * [#15](https://github.com/evoactivity/jsonapi-adonis/pull/15) Resolve concrete types for single-table inheritance families ([@evoactivity](https://github.com/evoactivity))
+
+#### Committers: 1
+- Liam ([@evoactivity](https://github.com/evoactivity))
+
 ## Release (2026-08-12)
 
 * @evoactivity/jsonapi-adonis 0.3.0 (minor)
