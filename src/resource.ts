@@ -46,9 +46,10 @@ export class JsonApiResource<Row extends LucidRow = LucidRow> {
   declare static type?: string
 
   /**
-   * The JSON:API type this resource serializes as. The single home for
-   * type derivation: the registry consults it for models and rows alike.
-   * Override it to compute types under a different scheme entirely.
+   * The JSON:API type this resource serializes as. This is the single
+   * home for type derivation, consulted by the registry for models and
+   * rows alike. Override it to compute types under a different scheme
+   * entirely.
    */
   static typeName(this: JsonApiResourceClass): string {
     if (this.type) return this.type
@@ -81,7 +82,7 @@ export class JsonApiResource<Row extends LucidRow = LucidRow> {
   declare static filters?: Record<string, FilterHandler>
 
   /**
-   * For the base resource of a single-table inheritance family: the
+   * For the base resource of a single-table inheritance family, the
    * concrete resources rows of this model can serialize as. Declaring this
    * makes relations targeting the base accept any member type on writes,
    * and switches unloaded belongsTo linkage to links-only (the concrete
@@ -90,7 +91,7 @@ export class JsonApiResource<Row extends LucidRow = LucidRow> {
   declare static subtypes?: () => JsonApiResourceClass[]
 
   /**
-   * For the base resource of a single-table inheritance family: maps a row
+   * For the base resource of a single-table inheritance family, maps a row
    * to its concrete resource, typically by reading the discriminator
    * column. Returning undefined keeps the row on this resource. Consulted
    * by the registry wherever a row is serialized, so linkage and included

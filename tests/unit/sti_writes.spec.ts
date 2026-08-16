@@ -1,7 +1,7 @@
 /**
  * Write paths accept the STI family (issue #9). A relation targeting a
  * base resource that declares subtypes accepts any member type in the
- * family, and rejects types outside it — including the base's own
+ * family, and rejects types outside it, including the base's own
  * abstract type, which never belongs in a payload. Rejections happen
  * before any database access, so they are unit-testable; the accept-and-
  * attach paths are covered functionally in the example app.
@@ -12,33 +12,8 @@ import { JsonApiResource } from '../../src/resource.ts'
 import { JsonApiException } from '../../src/errors.ts'
 import { deserializeResourceDocument } from '../../src/deserializer.ts'
 import { updateRelationship } from '../../src/relationships.ts'
-import { Fan, FootballTeam, RugbyTeam, SportsTeam, Stadium, make } from '../fixtures/models.ts'
-
-class FootballTeamResource extends JsonApiResource<FootballTeam> {
-  static type = 'football-teams'
-  static model = () => FootballTeam
-}
-
-class RugbyTeamResource extends JsonApiResource<RugbyTeam> {
-  static type = 'rugby-teams'
-  static model = () => RugbyTeam
-}
-
-class SportsTeamResource extends JsonApiResource<SportsTeam> {
-  static model = () => SportsTeam
-  static subtypes = () => [FootballTeamResource, RugbyTeamResource]
-  static resolveResource(row: SportsTeam) {
-    return { football: FootballTeamResource, rugby: RugbyTeamResource }[row.sport]
-  }
-}
-
-function registry() {
-  return new JsonApiRegistry().register([
-    SportsTeamResource,
-    FootballTeamResource,
-    RugbyTeamResource,
-  ])
-}
+import { Fan, SportsTeam, Stadium, make } from '../fixtures/models.ts'
+import { stiRegistry as registry } from '../fixtures/sti_resources.ts'
 
 async function rejection(fn: () => Promise<unknown>): Promise<JsonApiException> {
   try {
@@ -178,6 +153,93 @@ test.group('STI writes: relationship endpoints (parse stage)', () => {
         'add'
       )
     )
+    assert.equal(error.status, 409)
+  })
+})
+
+test.group('STI writes: primary data', () => {
+  /**
+   * A wildcard endpoint (/api/v1/:type) deserializes against the base
+   * model, so the primary data.type check has to accept the family, not
+   * one string. The matched type comes back on the result so the
+   * controller can stamp the discriminator and compare against the URL.
+   */
+  test('a family member type is accepted against the base model', ({ assert }) => {
+    const result = deserializeResourceDocument(SportsTeam, registry(), {
+      data: {
+        type: 'football-teams',
+        attributes: { name: 'Arsenal' },
+      },
+    })
+    assert.equal(result.type, 'football-teams')
+    assert.equal(result.attributes.name, 'Arsenal')
+  })
+
+  test('the abstract base type is rejected as primary data', ({ assert }) => {
+    const error = assert.throws(
+      () =>
+        deserializeResourceDocument(SportsTeam, registry(), {
+          data: { type: 'sports-teams', attributes: { name: 'X' } },
+        }),
+      JsonApiException
+    ) as unknown as JsonApiException
+    assert.equal(error.status, 409)
+  })
+
+  test('a type outside the family is a 409 naming every acceptable type', ({ assert }) => {
+    const error = assert.throws(
+      () =>
+        deserializeResourceDocument(SportsTeam, registry(), {
+          data: { type: 'referees', attributes: { name: 'X' } },
+        }),
+      JsonApiException
+    ) as unknown as JsonApiException
+    assert.equal(error.status, 409)
+    assert.match(error.errors[0].detail!, /"football-teams"/)
+    assert.match(error.errors[0].detail!, /"rugby-teams"/)
+  })
+
+  test('expectedType pins the endpoint to one member of the family', ({ assert }) => {
+    const accepted = deserializeResourceDocument(
+      SportsTeam,
+      registry(),
+      { data: { type: 'football-teams', attributes: { name: 'Arsenal' } } },
+      { expectedType: 'football-teams' }
+    )
+    assert.equal(accepted.type, 'football-teams')
+
+    const error = assert.throws(
+      () =>
+        deserializeResourceDocument(
+          SportsTeam,
+          registry(),
+          { data: { type: 'rugby-teams', attributes: { name: 'Saracens' } } },
+          { expectedType: 'football-teams' }
+        ),
+      JsonApiException
+    ) as unknown as JsonApiException
+    assert.equal(error.status, 409)
+  })
+
+  test('a non-STI model keeps its single-type check and reports its type', ({ assert }) => {
+    class StadiumResource extends JsonApiResource<Stadium> {
+      static type = 'stadiums'
+      static model = () => Stadium
+    }
+    const reg = new JsonApiRegistry().register([StadiumResource])
+
+    const result = deserializeResourceDocument(Stadium, reg, {
+      data: { type: 'stadiums', attributes: { name: 'Emirates' } },
+    })
+    assert.equal(result.type, 'stadiums')
+
+    const error = assert.throws(
+      () =>
+        deserializeResourceDocument(Stadium, reg, {
+          data: { type: 'arenas', attributes: { name: 'X' } },
+        }),
+      JsonApiException
+    ) as unknown as JsonApiException
     assert.equal(error.status, 409)
   })
 })

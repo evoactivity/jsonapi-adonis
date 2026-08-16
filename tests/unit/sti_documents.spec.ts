@@ -1,6 +1,6 @@
 /**
  * Documents carry concrete types for STI rows (issue #9). Loaded rows
- * resolve through resolveResource wherever they appear: as primary data,
+ * resolve through resolveResource wherever they appear, as primary data,
  * in linkage, and in included. An unloaded belongsTo targeting an STI
  * base emits no data member at all, because a bare foreign key cannot
  * name a concrete type; guessing produced a second identity for the same
@@ -12,34 +12,9 @@ import { JsonApiRegistry } from '../../src/registry.ts'
 import { JsonApiResource } from '../../src/resource.ts'
 import { LinkBuilder } from '../../src/links.ts'
 import { parseQueryParams } from '../../src/params.ts'
-import { Fan, FootballTeam, RugbyTeam, SportsTeam, Stadium, make } from '../fixtures/models.ts'
+import { Fan, SportsTeam, Stadium, make } from '../fixtures/models.ts'
+import { stiRegistry as registry } from '../fixtures/sti_resources.ts'
 import { stubRouter } from '../fixtures/stub_router.ts'
-
-class FootballTeamResource extends JsonApiResource<FootballTeam> {
-  static type = 'football-teams'
-  static model = () => FootballTeam
-}
-
-class RugbyTeamResource extends JsonApiResource<RugbyTeam> {
-  static type = 'rugby-teams'
-  static model = () => RugbyTeam
-}
-
-class SportsTeamResource extends JsonApiResource<SportsTeam> {
-  static model = () => SportsTeam
-  static subtypes = () => [FootballTeamResource, RugbyTeamResource]
-  static resolveResource(row: SportsTeam) {
-    return { football: FootballTeamResource, rugby: RugbyTeamResource }[row.sport]
-  }
-}
-
-function registry() {
-  return new JsonApiRegistry().register([
-    SportsTeamResource,
-    FootballTeamResource,
-    RugbyTeamResource,
-  ])
-}
 
 function build(input: any, qs: Record<string, unknown> = {}, reg = registry()) {
   return new DocumentBuilder(reg, parseQueryParams(qs), new LinkBuilder(false)).build(input)
@@ -67,6 +42,15 @@ test.group('STI documents: primary data', () => {
       fields: { 'football-teams': 'name' },
     })
     assert.deepEqual(Object.keys((doc.data as any).attributes), ['name'])
+  })
+
+  test('the abstract type is inert as a fieldset key', ({ assert }) => {
+    const doc = build(make(SportsTeam, { name: 'Arsenal', sport: 'football' }), {
+      fields: { 'sports-teams': 'name' },
+    })
+    // the row is football-teams, so a sports-teams fieldset matches nothing
+    // and no filtering happens
+    assert.includeMembers(Object.keys((doc.data as any).attributes), ['name', 'sport'])
   })
 })
 
@@ -112,10 +96,9 @@ test.group('STI documents: unloaded belongsTo to the base', () => {
     const stadium = make(Stadium, { name: 'Emirates', teamId: 5 })
 
     const doc = build(stadium)
-    const team = (doc.data as any).relationships?.team
-    if (team !== undefined) {
-      assert.notProperty(team, 'data')
-    }
+    // With links disabled the member has nothing left and is omitted
+    // entirely; either way, no base-typed data escapes.
+    assert.isUndefined((doc.data as any).relationships?.team?.data)
   })
 
   test('a relationship self link survives without the data member', ({ assert }) => {

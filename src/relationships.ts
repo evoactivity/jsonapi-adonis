@@ -1,7 +1,7 @@
 import string from '@adonisjs/core/helpers/string'
 import type { LucidModel, LucidRow } from '@adonisjs/lucid/types/model'
 import { loadRelation, relatedClient, setAttribute } from './lucid_access.ts'
-import { JsonApiException } from './errors.ts'
+import { JsonApiException, formatTypeList } from './errors.ts'
 import { verifyRelatedExist } from './deserializer.ts'
 import { isRelationExposed } from './resource.ts'
 import type { JsonApiRegistry } from './registry.ts'
@@ -63,11 +63,10 @@ function parseLinkage(
       throw invalidLinkage('Resource identifier objects must have string "type" and "id"')
     }
     if (!acceptedTypes.includes(value.type)) {
-      const listed = acceptedTypes.map((type) => `"${type}"`).join(' or ')
       throw new JsonApiException(
         {
           title: 'Conflict',
-          detail: `This relationship holds resources of type ${listed}`,
+          detail: `This relationship holds resources of type ${formatTypeList(acceptedTypes)}`,
           source: { pointer: '/data' },
         },
         { status: 409 }

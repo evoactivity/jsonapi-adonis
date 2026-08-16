@@ -7,6 +7,13 @@ import { JSON_API_MEDIA_TYPE, JSON_API_VERSION, type Document, type ErrorObject 
  * itself (invalid include paths, unknown sort fields, ...) and available
  * to userland for custom errors.
  */
+/**
+ * Formats acceptable JSON:API types for an error detail: '"a" or "b"'.
+ */
+export function formatTypeList(types: string[]): string {
+  return types.map((type) => `"${type}"`).join(' or ')
+}
+
 export class JsonApiException extends Exception {
   static status = 400
   static code = 'E_JSON_API_ERROR'

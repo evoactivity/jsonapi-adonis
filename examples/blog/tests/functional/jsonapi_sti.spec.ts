@@ -3,14 +3,14 @@
  * videos share the attachments table; articles hold a mixed to-many of
  * both. Documents must carry concrete types everywhere, writes must
  * accept any family member, and a claimed type that contradicts the
- * row's discriminator must 404 — the identifier names a resource that
- * does not exist.
+ * row's discriminator must 404, because the identifier names a resource
+ * that does not exist.
  */
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import User from '#models/user'
 import Article from '#models/article'
-import Attachment from '#models/attachment'
+import { Image, Video } from '#models/attachment'
 
 const MEDIA_TYPE = 'application/vnd.api+json'
 
@@ -25,16 +25,10 @@ async function seed() {
     body: 'Body',
     authorId: alice.id,
   })
-  const image = await Attachment.create({
-    title: 'Diagram',
-    kind: 'image',
-    url: '/diagram.png',
-  })
-  const video = await Attachment.create({
-    title: 'Walkthrough',
-    kind: 'video',
-    url: '/walkthrough.mp4',
-  })
+  // Creating through the subclasses exercises the beforeCreate hook that
+  // assigns the discriminator.
+  const image = await Image.create({ title: 'Diagram', url: '/diagram.png' })
+  const video = await Video.create({ title: 'Walkthrough', url: '/walkthrough.mp4' })
   return { alice, article, image, video }
 }
 

@@ -43,9 +43,9 @@ export class JsonApiRegistry {
       this.#byModel.set(resource.model(), resource)
 
       // A base resource registers its declared family, so one import line
-      // covers an STI family. Explicit registrations win: a subtype whose
-      // model already has a resource is left alone, which also bounds the
-      // recursion.
+      // covers an STI family. Explicit registrations win, so a subtype
+      // whose model already has a resource is left alone, which also
+      // bounds the recursion.
       for (const subtype of resource.subtypes?.() ?? []) {
         if (subtype.model && !this.#byModel.has(subtype.model())) {
           this.register([subtype])
@@ -107,7 +107,7 @@ export class JsonApiRegistry {
   /**
    * The types a relation targeting this model accepts on writes. A model
    * whose resource declares subtypes accepts every member of the family
-   * and nothing else — the base's own abstract type never appears in
+   * and nothing else. The base's own abstract type never appears in
    * payloads. Every other model accepts its single type, as before.
    */
   acceptedTypesFor(Model: LucidModel): string[] {

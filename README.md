@@ -97,6 +97,7 @@ Models without a resource class serialize automatically, with the type, attribut
 | [What is JSON:API?](./docs/what-is-jsonapi.md)   | The ideas behind the spec                                                                     |
 | [Reading data](./docs/reading-data.md)           | Resources and types, customizing, `include`, sparse fieldsets, sorting, pagination, filtering |
 | [Writing data](./docs/writing-data.md)           | Create, update and delete from JSON:API documents, relationship endpoints                     |
+| [Polymorphism](./docs/polymorphism.md)           | Mixed-type relationships: the database shapes, trade-offs, and single-table inheritance       |
 | [Links](./docs/links.md)                         | Route-driven URL generation, API versioning, casing                                           |
 | [Errors & negotiation](./docs/errors.md)         | Error documents, `handlesErrors()`, media type rules                                          |
 | [Low-level building blocks](./docs/low-level.md) | Serializing outside a request: commands, jobs, tests                                          |

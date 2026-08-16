@@ -178,10 +178,11 @@ export class JsonApiRequestContext {
    */
   async deserialize(
     model: LucidModel,
-    options: { expectedId?: string } = {}
+    options: { expectedId?: string; expectedType?: string } = {}
   ): Promise<DeserializedResource> {
     const result = deserializeResourceDocument(model, this.#registry, this.#ctx.request.body(), {
       expectedId: options.expectedId,
+      expectedType: options.expectedType,
       allowClientIds: this.#config.allowClientIds,
     })
     await verifyRelatedExist(model, result.references, this.#registry)
@@ -212,8 +213,7 @@ export class JsonApiRequestContext {
    */
   async renderRelationship(row: LucidRow, name: string): Promise<Document> {
     const linkage = await fetchLinkage(row, name, this.#registry)
-    const Model = row.constructor as LucidModel
-    const type = this.#registry.typeFor(Model)
+    const type = this.#registry.typeForRow(row)
     const id = String(row.$primaryKeyValue)
 
     const document: Document = { jsonapi: { version: JSON_API_VERSION }, data: linkage }

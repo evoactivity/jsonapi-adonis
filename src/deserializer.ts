@@ -1,5 +1,5 @@
 import type { LucidModel } from '@adonisjs/lucid/types/model'
-import { JsonApiException } from './errors.ts'
+import { JsonApiException, formatTypeList } from './errors.ts'
 import { isRelationExposed } from './resource.ts'
 import type { ResourceIdentifier } from './types.ts'
 import type { JsonApiRegistry } from './registry.ts'
@@ -25,16 +25,32 @@ export type RelatedReference = {
  */
 export type DeserializedResource = {
   id?: string
+  /**
+   * The type the client sent as data.type, already validated against the
+   * accepted set. For an STI base endpoint this says which family member
+   * the document described, so the caller can stamp the discriminator.
+   */
+  type: string
   attributes: Record<string, unknown>
   toMany: Record<string, string[]>
   /**
    * Every related resource referenced by the document (to-one and to-many),
    * for existence verification (404 per spec).
    */
-  references: { relation: string; ids: string[] }[]
+  references: RelatedReference[]
 }
 
 export type DeserializeOptions = {
+  /**
+   * Narrows the accepted primary type to exactly this string. For an
+   * endpoint whose URL names one member of an STI family
+   * (/api/v1/:type), pass the type the URL names, so a body claiming a
+   * different family member is a 409. Without it, an STI base model
+   * accepts any member of its declared family, and any other model
+   * accepts its single type.
+   */
+  expectedType?: string
+
   /**
    * The id from the endpoint URL. When set (PATCH), data.id must be present
    * and match (400/409). When unset (POST), a client-generated id is
@@ -79,7 +95,9 @@ export function deserializeResourceDocument(
   body: unknown,
   options: DeserializeOptions = {}
 ): DeserializedResource {
-  const expectedType = registry.typeFor(Model)
+  const acceptedTypes = options.expectedType
+    ? [options.expectedType]
+    : registry.acceptedTypesFor(Model)
 
   if (!isPlainObject(body) || !('data' in body)) {
     throw invalidDocument('The request body must be an object with a "data" member', '')
@@ -91,9 +109,9 @@ export function deserializeResourceDocument(
   if (typeof data.type !== 'string') {
     throw invalidDocument('The resource object must have a string "type" member', '/data/type')
   }
-  if (data.type !== expectedType) {
+  if (!acceptedTypes.includes(data.type)) {
     throw conflict(
-      `Resource type "${data.type}" is not supported by this endpoint (expected "${expectedType}")`,
+      `Resource type "${data.type}" is not supported by this endpoint (expected ${formatTypeList(acceptedTypes)})`,
       '/data/type'
     )
   }
@@ -135,7 +153,7 @@ export function deserializeResourceDocument(
     attributes
   )
 
-  return { id, attributes, toMany, references }
+  return { id, type: data.type, attributes, toMany, references }
 }
 
 /**
@@ -199,7 +217,6 @@ function deserializeRelationships(
     }
     relation.boot()
     const acceptedTypes = registry.acceptedTypesFor(relation.relatedModel())
-    const listed = () => acceptedTypes.map((type) => `"${type}"`).join(' or ')
     const linkage = value.data
 
     if (relation.type === 'belongsTo') {
@@ -211,7 +228,7 @@ function deserializeRelationships(
       const identifier = parseIdentifier(linkage, `${pointer}/data`)
       if (!acceptedTypes.includes(identifier.type)) {
         throw conflict(
-          `Relationship "${name}" expects resources of type ${listed()}`,
+          `Relationship "${name}" expects resources of type ${formatTypeList(acceptedTypes)}`,
           `${pointer}/data/type`
         )
       }
@@ -224,21 +241,18 @@ function deserializeRelationships(
           `${pointer}/data`
         )
       }
-      toMany[name] = linkage.map((entry, index) => {
+      const identifiers = linkage.map((entry, index) => {
         const identifier = parseIdentifier(entry, `${pointer}/data/${index}`)
         if (!acceptedTypes.includes(identifier.type)) {
           throw conflict(
-            `Relationship "${name}" expects resources of type ${listed()}`,
+            `Relationship "${name}" expects resources of type ${formatTypeList(acceptedTypes)}`,
             `${pointer}/data/${index}/type`
           )
         }
-        return identifier.id
+        return identifier
       })
-      references.push({
-        relation: name,
-        ids: toMany[name],
-        claims: linkage.map((entry, index) => parseIdentifier(entry, `${pointer}/data/${index}`)),
-      })
+      toMany[name] = identifiers.map((identifier) => identifier.id)
+      references.push({ relation: name, ids: toMany[name], claims: identifiers })
     } else {
       throw new JsonApiException(
         {

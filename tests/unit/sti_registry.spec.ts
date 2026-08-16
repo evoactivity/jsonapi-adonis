@@ -9,32 +9,12 @@ import { test } from '@japa/runner'
 import { JsonApiRegistry } from '../../src/registry.ts'
 import { JsonApiResource } from '../../src/resource.ts'
 import { FootballTeam, RugbyTeam, SportsTeam, make } from '../fixtures/models.ts'
-
-class FootballTeamResource extends JsonApiResource<FootballTeam> {
-  static type = 'football-teams'
-  static model = () => FootballTeam
-}
-
-class RugbyTeamResource extends JsonApiResource<RugbyTeam> {
-  static type = 'rugby-teams'
-  static model = () => RugbyTeam
-}
-
-class SportsTeamResource extends JsonApiResource<SportsTeam> {
-  static model = () => SportsTeam
-  static subtypes = () => [FootballTeamResource, RugbyTeamResource]
-  static resolveResource(row: SportsTeam) {
-    return { football: FootballTeamResource, rugby: RugbyTeamResource }[row.sport]
-  }
-}
-
-function registry() {
-  return new JsonApiRegistry().register([
-    SportsTeamResource,
-    FootballTeamResource,
-    RugbyTeamResource,
-  ])
-}
+import {
+  FootballTeamResource,
+  RugbyTeamResource,
+  SportsTeamResource,
+  stiRegistry as registry,
+} from '../fixtures/sti_resources.ts'
 
 test.group('registry: resolveResource', () => {
   test('a base-hydrated row resolves to its concrete resource', ({ assert }) => {
@@ -190,5 +170,72 @@ test.group('registry: typeName as the single home for type derivation', () => {
     }
     assert.equal(NamedResource.typeName(), 'named-things')
     assert.equal(UnnamedResource.typeName(), 'sports-teams')
+  })
+})
+
+test.group('registry: families discovered at runtime', () => {
+  /**
+   * A family whose discriminator values are user data, so the concrete
+   * resources are built on demand. One class per value, memoized: the
+   * registry caches types per class object, and the resolution walk ends
+   * on a repeated class, so identity matters.
+   */
+  function dynamicFamily() {
+    const cache = new Map<string, typeof JsonApiResource<SportsTeam>>()
+
+    class TeamResource extends JsonApiResource<SportsTeam> {
+      static model = () => SportsTeam
+      static subtypes = () => [...cache.values()]
+      static resolveResource(row: SportsTeam) {
+        let resource = cache.get(row.sport)
+        if (!resource) {
+          resource = class extends TeamResource {
+            static type = `${row.sport}-teams`
+          }
+          cache.set(row.sport, resource)
+        }
+        return resource
+      }
+    }
+    return { TeamResource, cache }
+  }
+
+  test('rows resolve to memoized runtime-built resources', ({ assert }) => {
+    const { TeamResource } = dynamicFamily()
+    const reg = new JsonApiRegistry().register([TeamResource])
+
+    assert.equal(reg.typeForRow(make(SportsTeam, { sport: 'quidditch' })), 'quidditch-teams')
+    assert.equal(reg.typeForRow(make(SportsTeam, { sport: 'chess' })), 'chess-teams')
+    // the same value resolves to the same class, not a fresh one
+    assert.strictEqual(
+      reg.resourceForRow(make(SportsTeam, { sport: 'quidditch' })),
+      reg.resourceForRow(make(SportsTeam, { sport: 'quidditch' }))
+    )
+  })
+
+  test('a kind discovered after boot is accepted on writes', ({ assert }) => {
+    const { TeamResource } = dynamicFamily()
+    const reg = new JsonApiRegistry().register([TeamResource])
+
+    // boot time: no kinds exist yet, so no types are accepted
+    assert.deepEqual(reg.acceptedTypesFor(SportsTeam), [])
+
+    // a row with a new kind arrives and resolves
+    reg.typeForRow(make(SportsTeam, { sport: 'quidditch' }))
+
+    // subtypes() is consulted per write, so the family grew
+    assert.deepEqual(reg.acceptedTypesFor(SportsTeam), ['quidditch-teams'])
+  })
+
+  test('a runtime-built resource serializes through the inherited chain safely', ({ assert }) => {
+    // the dynamic class inherits resolveResource from its base; resolving
+    // again returns the same memoized class, which ends the walk
+    const { TeamResource } = dynamicFamily()
+    const reg = new JsonApiRegistry().register([TeamResource])
+    const row = make(SportsTeam, { sport: 'quidditch' })
+
+    const resolved = reg.resourceForRow(row)
+    assert.equal(reg.typeForRow(row), 'quidditch-teams')
+    assert.strictEqual(reg.resourceForRow(row), resolved)
   })
 })

@@ -96,4 +96,4 @@ Register a subset of these routes with the `relationshipsOnly` option; see [Sele
 
 ---
 
-Next: [Links](./links.md) · [Errors & negotiation](./errors.md) · [Reference](./reference.md)
+Next: [Polymorphism](./polymorphism.md) · [Links](./links.md) · [Errors & negotiation](./errors.md) · [Reference](./reference.md)
