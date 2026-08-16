@@ -115,7 +115,7 @@ const registry = await app.container.make(JsonApiRegistry)
 const input = deserializeResourceDocument(Article, registry, payload, {
   allowClientIds: false,
 })
-await verifyRelatedExist(Article, input.references) // 404-style JsonApiException if missing
+await verifyRelatedExist(Article, input.references, registry) // 404-style JsonApiException if missing
 
 const article = await Article.create(input.attributes)
 ```

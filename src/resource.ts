@@ -1,7 +1,9 @@
+import string from '@adonisjs/core/helpers/string'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { LucidModel, LucidRow } from '@adonisjs/lucid/types/model'
 import type { Links, Meta } from './types.ts'
 import type { FilterHandler } from './filters.ts'
+import type { JsonApiResourceClass } from './registry.ts'
 
 /**
  * Describes how a Lucid model serializes into a JSON:API resource object.
@@ -44,6 +46,23 @@ export class JsonApiResource<Row extends LucidRow = LucidRow> {
   declare static type?: string
 
   /**
+   * The JSON:API type this resource serializes as. This is the single
+   * home for type derivation, consulted by the registry for models and
+   * rows alike. Override it to compute types under a different scheme
+   * entirely.
+   */
+  static typeName(this: JsonApiResourceClass): string {
+    if (this.type) return this.type
+    const Model = this.model?.()
+    if (!Model) {
+      throw new Error(
+        `JSON:API resource "${this.name}" must declare a static type or model to derive its type`
+      )
+    }
+    return string.dashCase(Model.table)
+  }
+
+  /**
    * The Lucid model this resource describes. Required when registering the
    * resource explicitly.
    */
@@ -61,6 +80,24 @@ export class JsonApiResource<Row extends LucidRow = LucidRow> {
    * filter.relation, filter.custom).
    */
   declare static filters?: Record<string, FilterHandler>
+
+  /**
+   * For the base resource of a single-table inheritance family, the
+   * concrete resources rows of this model can serialize as. Declaring this
+   * makes relations targeting the base accept any member type on writes,
+   * and switches unloaded belongsTo linkage to links-only (the concrete
+   * type of an unloaded row is unknowable from a bare foreign key).
+   */
+  declare static subtypes?: () => JsonApiResourceClass[]
+
+  /**
+   * For the base resource of a single-table inheritance family, maps a row
+   * to its concrete resource, typically by reading the discriminator
+   * column. Returning undefined keeps the row on this resource. Consulted
+   * by the registry wherever a row is serialized, so linkage and included
+   * documents carry concrete types.
+   */
+  declare static resolveResource?: (row: never) => JsonApiResourceClass | undefined
 
   constructor(
     protected resource: Row,

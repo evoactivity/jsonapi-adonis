@@ -270,4 +270,4 @@ This is deliberately explicit and per-query. Visibility is a security concern, a
 
 ---
 
-Next: [Writing data](./writing-data.md) · [Links](./links.md) · [Errors & negotiation](./errors.md) · [Reference](./reference.md)
+Next: [Writing data](./writing-data.md) · [Polymorphism](./polymorphism.md) · [Links](./links.md) · [Errors & negotiation](./errors.md) · [Reference](./reference.md)

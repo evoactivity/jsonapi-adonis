@@ -44,8 +44,15 @@ test.group('deserializeResourceDocument: structure', () => {
     assert.deepEqual(result.attributes, { title: 'Hello', authorId: '7' })
     assert.deepEqual(result.toMany, { tags: ['1', '2'] })
     assert.deepEqual(result.references, [
-      { relation: 'author', ids: ['7'] },
-      { relation: 'tags', ids: ['1', '2'] },
+      { relation: 'author', ids: ['7'], claims: [{ type: 'users', id: '7' }] },
+      {
+        relation: 'tags',
+        ids: ['1', '2'],
+        claims: [
+          { type: 'tags', id: '1' },
+          { type: 'tags', id: '2' },
+        ],
+      },
     ])
   })
 

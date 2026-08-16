@@ -1,8 +1,19 @@
 import type { LucidModel } from '@adonisjs/lucid/types/model'
-import { JsonApiException } from './errors.ts'
+import { JsonApiException, formatTypeList } from './errors.ts'
 import { isRelationExposed } from './resource.ts'
 import type { ResourceIdentifier } from './types.ts'
 import type { JsonApiRegistry } from './registry.ts'
+
+/**
+ * A relationship write's references to existing rows. claims carries the
+ * identifiers as the client sent them, so verifyRelatedExist can check a
+ * claimed type against the row it names.
+ */
+export type RelatedReference = {
+  relation: string
+  ids: string[]
+  claims?: ResourceIdentifier[]
+}
 
 /**
  * Result of deserializing a JSON:API resource document into Lucid-friendly
@@ -14,16 +25,32 @@ import type { JsonApiRegistry } from './registry.ts'
  */
 export type DeserializedResource = {
   id?: string
+  /**
+   * The type the client sent as data.type, already validated against the
+   * accepted set. For an STI base endpoint this says which family member
+   * the document described, so the caller can stamp the discriminator.
+   */
+  type: string
   attributes: Record<string, unknown>
   toMany: Record<string, string[]>
   /**
    * Every related resource referenced by the document (to-one and to-many),
    * for existence verification (404 per spec).
    */
-  references: { relation: string; ids: string[] }[]
+  references: RelatedReference[]
 }
 
 export type DeserializeOptions = {
+  /**
+   * Narrows the accepted primary type to exactly this string. For an
+   * endpoint whose URL names one member of an STI family
+   * (/api/v1/:type), pass the type the URL names, so a body claiming a
+   * different family member is a 409. Without it, an STI base model
+   * accepts any member of its declared family, and any other model
+   * accepts its single type.
+   */
+  expectedType?: string
+
   /**
    * The id from the endpoint URL. When set (PATCH), data.id must be present
    * and match (400/409). When unset (POST), a client-generated id is
@@ -68,7 +95,9 @@ export function deserializeResourceDocument(
   body: unknown,
   options: DeserializeOptions = {}
 ): DeserializedResource {
-  const expectedType = registry.typeFor(Model)
+  const acceptedTypes = options.expectedType
+    ? [options.expectedType]
+    : registry.acceptedTypesFor(Model)
 
   if (!isPlainObject(body) || !('data' in body)) {
     throw invalidDocument('The request body must be an object with a "data" member', '')
@@ -80,9 +109,9 @@ export function deserializeResourceDocument(
   if (typeof data.type !== 'string') {
     throw invalidDocument('The resource object must have a string "type" member', '/data/type')
   }
-  if (data.type !== expectedType) {
+  if (!acceptedTypes.includes(data.type)) {
     throw conflict(
-      `Resource type "${data.type}" is not supported by this endpoint (expected "${expectedType}")`,
+      `Resource type "${data.type}" is not supported by this endpoint (expected ${formatTypeList(acceptedTypes)})`,
       '/data/type'
     )
   }
@@ -124,7 +153,7 @@ export function deserializeResourceDocument(
     attributes
   )
 
-  return { id, attributes, toMany, references }
+  return { id, type: data.type, attributes, toMany, references }
 }
 
 /**
@@ -164,9 +193,9 @@ function deserializeRelationships(
   registry: JsonApiRegistry,
   raw: unknown,
   attributes: Record<string, unknown>
-): { toMany: Record<string, string[]>; references: { relation: string; ids: string[] }[] } {
+): { toMany: Record<string, string[]>; references: RelatedReference[] } {
   const toMany: Record<string, string[]> = {}
-  const references: { relation: string; ids: string[] }[] = []
+  const references: RelatedReference[] = []
   if (raw === undefined) return { toMany, references }
   if (!isPlainObject(raw)) {
     throw invalidDocument('The "relationships" member must be an object', '/data/relationships')
@@ -187,7 +216,7 @@ function deserializeRelationships(
       )
     }
     relation.boot()
-    const relatedType = registry.typeFor(relation.relatedModel())
+    const acceptedTypes = registry.acceptedTypesFor(relation.relatedModel())
     const linkage = value.data
 
     if (relation.type === 'belongsTo') {
@@ -197,14 +226,14 @@ function deserializeRelationships(
         continue
       }
       const identifier = parseIdentifier(linkage, `${pointer}/data`)
-      if (identifier.type !== relatedType) {
+      if (!acceptedTypes.includes(identifier.type)) {
         throw conflict(
-          `Relationship "${name}" expects resources of type "${relatedType}"`,
+          `Relationship "${name}" expects resources of type ${formatTypeList(acceptedTypes)}`,
           `${pointer}/data/type`
         )
       }
       attributes[foreignKey] = identifier.id
-      references.push({ relation: name, ids: [identifier.id] })
+      references.push({ relation: name, ids: [identifier.id], claims: [identifier] })
     } else if (relation.type === 'manyToMany' || relation.type === 'hasMany') {
       if (!Array.isArray(linkage)) {
         throw invalidDocument(
@@ -212,17 +241,18 @@ function deserializeRelationships(
           `${pointer}/data`
         )
       }
-      toMany[name] = linkage.map((entry, index) => {
+      const identifiers = linkage.map((entry, index) => {
         const identifier = parseIdentifier(entry, `${pointer}/data/${index}`)
-        if (identifier.type !== relatedType) {
+        if (!acceptedTypes.includes(identifier.type)) {
           throw conflict(
-            `Relationship "${name}" expects resources of type "${relatedType}"`,
+            `Relationship "${name}" expects resources of type ${formatTypeList(acceptedTypes)}`,
             `${pointer}/data/${index}/type`
           )
         }
-        return identifier.id
+        return identifier
       })
-      references.push({ relation: name, ids: toMany[name] })
+      toMany[name] = identifiers.map((identifier) => identifier.id)
+      references.push({ relation: name, ids: toMany[name], claims: identifiers })
     } else {
       throw new JsonApiException(
         {
@@ -244,9 +274,10 @@ function deserializeRelationships(
  */
 export async function verifyRelatedExist(
   Model: LucidModel,
-  references: { relation: string; ids: string[] }[]
+  references: RelatedReference[],
+  registry: JsonApiRegistry
 ): Promise<void> {
-  for (const { relation: name, ids } of references) {
+  for (const { relation: name, ids, claims } of references) {
     if (ids.length === 0) continue
     const relation = Model.$relationsDefinitions.get(name)!
     relation.boot()
@@ -263,6 +294,30 @@ export async function verifyRelatedExist(
         },
         { status: 404 }
       )
+    }
+
+    // For an STI family, an identifier's type is part of the identity: a
+    // claimed type the row's discriminator contradicts names a resource
+    // that does not exist, same as an unknown id. Without this check the
+    // shared id space would let a mislabelled identifier attach silently.
+    if (claims?.length && registry.resourceFor(RelatedModel).subtypes) {
+      const byId = new Map(rows.map((row) => [String(row.$primaryKeyValue), row]))
+      const wrong = claims.filter((claim) => {
+        const row = byId.get(claim.id)
+        return row !== undefined && registry.typeForRow(row) !== claim.type
+      })
+      if (wrong.length) {
+        throw new JsonApiException(
+          {
+            title: 'Not Found',
+            detail: `Related resources do not exist: ${wrong
+              .map((claim) => `${claim.type}/${claim.id}`)
+              .join(', ')}`,
+            source: { pointer: `/data/relationships/${name}` },
+          },
+          { status: 404 }
+        )
+      }
     }
   }
 }

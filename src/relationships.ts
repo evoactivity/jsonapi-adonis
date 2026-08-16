@@ -1,7 +1,7 @@
 import string from '@adonisjs/core/helpers/string'
 import type { LucidModel, LucidRow } from '@adonisjs/lucid/types/model'
 import { loadRelation, relatedClient, setAttribute } from './lucid_access.ts'
-import { JsonApiException } from './errors.ts'
+import { JsonApiException, formatTypeList } from './errors.ts'
 import { verifyRelatedExist } from './deserializer.ts'
 import { isRelationExposed } from './resource.ts'
 import type { JsonApiRegistry } from './registry.ts'
@@ -50,7 +50,7 @@ export function getRelationOrFail(Model: LucidModel, name: string, registry: Jso
  */
 function parseLinkage(
   body: unknown,
-  relatedType: string,
+  acceptedTypes: string[],
   cardinality: 'to-one' | 'to-many'
 ): ResourceIdentifier[] | null {
   if (!isPlainObject(body) || !('data' in body)) {
@@ -62,11 +62,11 @@ function parseLinkage(
     if (!isPlainObject(value) || typeof value.type !== 'string' || typeof value.id !== 'string') {
       throw invalidLinkage('Resource identifier objects must have string "type" and "id"')
     }
-    if (value.type !== relatedType) {
+    if (!acceptedTypes.includes(value.type)) {
       throw new JsonApiException(
         {
           title: 'Conflict',
-          detail: `This relationship holds resources of type "${relatedType}"`,
+          detail: `This relationship holds resources of type ${formatTypeList(acceptedTypes)}`,
           source: { pointer: '/data' },
         },
         { status: 409 }
@@ -99,7 +99,7 @@ export async function updateRelationship(
   const Model = row.constructor as LucidModel
   const relation = getRelationOrFail(Model, name, registry)
   const relationName = relation.relationName
-  const relatedType = registry.typeFor(relation.relatedModel())
+  const acceptedTypes = registry.acceptedTypesFor(relation.relatedModel())
 
   if (relation.type === 'belongsTo') {
     if (action !== 'replace') {
@@ -108,12 +108,16 @@ export async function updateRelationship(
         { status: 405 }
       )
     }
-    const identifiers = parseLinkage(body, relatedType, 'to-one')
+    const identifiers = parseLinkage(body, acceptedTypes, 'to-one')
     const foreignKey = (relation as unknown as { foreignKey: string }).foreignKey
     if (identifiers === null) {
       setAttribute(row, foreignKey, null)
     } else {
-      await verifyRelatedExist(Model, [{ relation: relationName, ids: [identifiers[0].id] }])
+      await verifyRelatedExist(
+        Model,
+        [{ relation: relationName, ids: [identifiers[0].id], claims: identifiers }],
+        registry
+      )
       setAttribute(row, foreignKey, identifiers[0].id)
     }
     await row.save()
@@ -121,9 +125,13 @@ export async function updateRelationship(
   }
 
   if (relation.type === 'manyToMany') {
-    const identifiers = parseLinkage(body, relatedType, 'to-many')!
+    const identifiers = parseLinkage(body, acceptedTypes, 'to-many')!
     const ids = identifiers.map((identifier) => identifier.id)
-    await verifyRelatedExist(Model, [{ relation: relationName, ids }])
+    await verifyRelatedExist(
+      Model,
+      [{ relation: relationName, ids, claims: identifiers }],
+      registry
+    )
     const related = relatedClient(row, relationName)
 
     if (action === 'replace') {
@@ -148,9 +156,13 @@ export async function updateRelationship(
         { status: 403 }
       )
     }
-    const identifiers = parseLinkage(body, relatedType, 'to-many')!
+    const identifiers = parseLinkage(body, acceptedTypes, 'to-many')!
     const ids = identifiers.map((identifier) => identifier.id)
-    await verifyRelatedExist(Model, [{ relation: relationName, ids }])
+    await verifyRelatedExist(
+      Model,
+      [{ relation: relationName, ids, claims: identifiers }],
+      registry
+    )
     const RelatedModel = relation.relatedModel()
     const children = await RelatedModel.query().whereIn(RelatedModel.primaryKey, ids)
     await relatedClient(row, relationName).saveMany(children)
@@ -178,7 +190,7 @@ export async function fetchLinkage(
   const loaded = row.$preloaded[relationName] as LucidRow | LucidRow[] | null | undefined
 
   const identify = (related: LucidRow): ResourceIdentifier => ({
-    type: registry.typeFor(related.constructor as LucidModel),
+    type: registry.typeForRow(related),
     id: String(related.$primaryKeyValue),
   })
 

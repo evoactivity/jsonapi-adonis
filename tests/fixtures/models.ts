@@ -136,3 +136,57 @@ export function make<T extends typeof BaseModel>(
   Object.assign(row, attributes)
   return row
 }
+
+/**
+ * Single-table inheritance family for polymorphism tests. SportsTeam is
+ * the base, FootballTeam and RugbyTeam are subclasses over the same
+ * table, sport is the discriminator. This is the pattern the polymorphism
+ * feature exists for (issue #9).
+ */
+export class SportsTeam extends BaseModel {
+  static table = 'sports_teams'
+
+  @column({ isPrimary: true })
+  declare id: number
+
+  @column()
+  declare name: string
+
+  @column()
+  declare sport: 'football' | 'rugby'
+}
+
+export class FootballTeam extends SportsTeam {
+  static table = 'sports_teams'
+}
+
+export class RugbyTeam extends SportsTeam {
+  static table = 'sports_teams'
+}
+
+/** A belongsTo targeting the STI base. */
+export class Stadium extends BaseModel {
+  @column({ isPrimary: true })
+  declare id: number
+
+  @column()
+  declare name: string
+
+  @column()
+  declare teamId: number
+
+  @belongsTo(() => SportsTeam, { foreignKey: 'teamId' })
+  declare team: BelongsTo<typeof SportsTeam>
+}
+
+/** A manyToMany targeting the STI base. */
+export class Fan extends BaseModel {
+  @column({ isPrimary: true })
+  declare id: number
+
+  @column()
+  declare name: string
+
+  @manyToMany(() => SportsTeam, { pivotTable: 'favourites' })
+  declare favourites: ManyToMany<typeof SportsTeam>
+}

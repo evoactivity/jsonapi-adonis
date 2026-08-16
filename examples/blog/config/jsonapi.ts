@@ -8,6 +8,9 @@ export default defineConfig({
   resources: [
     () => import('#resources/article_resource'),
     () => import('#resources/user_resource'),
+    () => import('#resources/attachment_resource'),
+    () => import('#resources/image_resource'),
+    () => import('#resources/video_resource'),
   ],
 
   /**

@@ -7,6 +7,21 @@
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
+export class ArticleAttachmentSchema extends BaseModel {
+  static $columns = ['articleId', 'attachmentId', 'createdAt', 'id', 'updatedAt'] as const
+  $columns = ArticleAttachmentSchema.$columns
+  @column()
+  declare articleId: number
+  @column()
+  declare attachmentId: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime | null
+  @column({ isPrimary: true })
+  declare id: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
 export class ArticleTagSchema extends BaseModel {
   static $columns = ['articleId', 'createdAt', 'id', 'tagId', 'updatedAt'] as const
   $columns = ArticleTagSchema.$columns
@@ -23,12 +38,14 @@ export class ArticleTagSchema extends BaseModel {
 }
 
 export class ArticleSchema extends BaseModel {
-  static $columns = ['authorId', 'body', 'createdAt', 'id', 'title', 'updatedAt'] as const
+  static $columns = ['authorId', 'body', 'coverAttachmentId', 'createdAt', 'id', 'title', 'updatedAt'] as const
   $columns = ArticleSchema.$columns
   @column()
   declare authorId: number
   @column()
   declare body: string
+  @column()
+  declare coverAttachmentId: number | null
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column({ isPrimary: true })
@@ -39,19 +56,25 @@ export class ArticleSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class AttachmentSchema extends BaseModel {
+  static $columns = ['createdAt', 'id', 'kind', 'title', 'updatedAt', 'url'] as const
+  $columns = AttachmentSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare kind: string
+  @column()
+  declare title: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+  @column()
+  declare url: string
+}
+
 export class AuthAccessTokenSchema extends BaseModel {
-  static $columns = [
-    'abilities',
-    'createdAt',
-    'expiresAt',
-    'hash',
-    'id',
-    'lastUsedAt',
-    'name',
-    'tokenableId',
-    'type',
-    'updatedAt',
-  ] as const
+  static $columns = ['abilities', 'createdAt', 'expiresAt', 'hash', 'id', 'lastUsedAt', 'name', 'tokenableId', 'type', 'updatedAt'] as const
   $columns = AuthAccessTokenSchema.$columns
   @column()
   declare abilities: string
@@ -76,15 +99,7 @@ export class AuthAccessTokenSchema extends BaseModel {
 }
 
 export class CommentSchema extends BaseModel {
-  static $columns = [
-    'articleId',
-    'authorId',
-    'body',
-    'createdAt',
-    'id',
-    'published',
-    'updatedAt',
-  ] as const
+  static $columns = ['articleId', 'authorId', 'body', 'createdAt', 'id', 'published', 'updatedAt'] as const
   $columns = CommentSchema.$columns
   @column()
   declare articleId: number
