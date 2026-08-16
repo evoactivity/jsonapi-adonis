@@ -45,8 +45,8 @@ jobs:
       - name: Typecheck example app
         run: pnpm -C examples/blog typecheck
 
-      # Lint must run before migrations: `node ace migration:run` regenerates
-      # database/schema.ts without formatting, which would fail prettier
+      # database/schema.ts is regenerated unformatted by migrations and is
+      # prettier-ignored, so lint and migration order no longer matters
       - name: Lint example app
         run: pnpm -C examples/blog lint
 

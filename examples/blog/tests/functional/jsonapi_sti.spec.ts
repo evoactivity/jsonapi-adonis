@@ -168,3 +168,53 @@ test.group('STI writes over HTTP', (group) => {
     response.assertStatus(404)
   })
 })
+
+test.group('STI belongsTo over HTTP', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+
+  test('an unloaded belongsTo to the base serves links without data', async ({
+    client,
+    assert,
+  }) => {
+    const { article, image } = await seed()
+    article.coverAttachmentId = image.id
+    await article.save()
+
+    const response = await client.get(`/api/v1/articles/${article.id}`)
+    response.assertStatus(200)
+    const cover = (response.body() as any).data.relationships.cover
+    assert.isUndefined(cover.data)
+    assert.isDefined(cover.links.related)
+  })
+
+  test('replace accepts a family member and sets the foreign key', async ({ client, assert }) => {
+    const { article, video } = await seed()
+
+    const response = await client
+      .patch(`/api/v1/articles/${article.id}/relationships/cover`)
+      .header('content-type', MEDIA_TYPE)
+      .json({ data: { type: 'videos', id: String(video.id) } })
+    response.assertStatus(200)
+
+    await article.refresh()
+    assert.equal(article.coverAttachmentId, video.id)
+  })
+
+  test('replace with a mismatched claimed type is a 404 and sets nothing', async ({
+    client,
+    assert,
+  }) => {
+    const { article, video } = await seed()
+
+    // video.id exists in the shared table, but as a video: images/<id>
+    // names a resource that does not exist
+    const response = await client
+      .patch(`/api/v1/articles/${article.id}/relationships/cover`)
+      .header('content-type', MEDIA_TYPE)
+      .json({ data: { type: 'images', id: String(video.id) } })
+    response.assertStatus(404)
+
+    await article.refresh()
+    assert.isNull(article.coverAttachmentId)
+  })
+})

@@ -18,4 +18,8 @@ export default class Article extends ArticleSchema {
 
   @manyToMany(() => Attachment, { pivotTable: 'article_attachments' })
   declare attachments: ManyToMany<typeof Attachment>
+
+  /** A belongsTo targeting the STI base: the cover is an image or a video. */
+  @belongsTo(() => Attachment, { foreignKey: 'coverAttachmentId' })
+  declare cover: BelongsTo<typeof Attachment>
 }

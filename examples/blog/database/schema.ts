@@ -38,12 +38,14 @@ export class ArticleTagSchema extends BaseModel {
 }
 
 export class ArticleSchema extends BaseModel {
-  static $columns = ['authorId', 'body', 'createdAt', 'id', 'title', 'updatedAt'] as const
+  static $columns = ['authorId', 'body', 'coverAttachmentId', 'createdAt', 'id', 'title', 'updatedAt'] as const
   $columns = ArticleSchema.$columns
   @column()
   declare authorId: number
   @column()
   declare body: string
+  @column()
+  declare coverAttachmentId: number | null
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column({ isPrimary: true })
@@ -72,18 +74,7 @@ export class AttachmentSchema extends BaseModel {
 }
 
 export class AuthAccessTokenSchema extends BaseModel {
-  static $columns = [
-    'abilities',
-    'createdAt',
-    'expiresAt',
-    'hash',
-    'id',
-    'lastUsedAt',
-    'name',
-    'tokenableId',
-    'type',
-    'updatedAt',
-  ] as const
+  static $columns = ['abilities', 'createdAt', 'expiresAt', 'hash', 'id', 'lastUsedAt', 'name', 'tokenableId', 'type', 'updatedAt'] as const
   $columns = AuthAccessTokenSchema.$columns
   @column()
   declare abilities: string
@@ -108,15 +99,7 @@ export class AuthAccessTokenSchema extends BaseModel {
 }
 
 export class CommentSchema extends BaseModel {
-  static $columns = [
-    'articleId',
-    'authorId',
-    'body',
-    'createdAt',
-    'id',
-    'published',
-    'updatedAt',
-  ] as const
+  static $columns = ['articleId', 'authorId', 'body', 'createdAt', 'id', 'published', 'updatedAt'] as const
   $columns = CommentSchema.$columns
   @column()
   declare articleId: number
