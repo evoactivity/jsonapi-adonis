@@ -120,10 +120,18 @@ export const filter = {
    * Full control: receive the Lucid query builder and the raw value.
    * Scopes, joins and subqueries all work here.
    */
-  custom(
-    handler: (query: FilterQuery, value: unknown, context: FilterContext) => void
+  custom<Model extends LucidModel = LucidModel>(
+    handler: (
+      query: ModelQueryBuilderContract<Model>,
+      value: unknown,
+      context: FilterContext
+    ) => void
   ): FilterHandler {
-    return handler
+    // One cast here instead of one in every handler that names a
+    // relation: statics cannot reference class type parameters, so the
+    // stored FilterHandler stays wide while the declaration site gets
+    // the concrete model.
+    return handler as FilterHandler
   },
 }
 

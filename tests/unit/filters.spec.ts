@@ -161,3 +161,23 @@ test.group('filter handlers receive the request context', () => {
     assert.isUndefined(captured.ctx)
   })
 })
+
+test.group('filter.custom is generic over the model', () => {
+  test('a typed handler uses relation names without casting', ({ assert }) => {
+    // The point is the typecheck: whereHas('comments') only compiles
+    // because custom<typeof Article> narrows the query builder. An
+    // untyped handler sees ModelQueryBuilderContract<LucidModel>, where
+    // relation names do not exist.
+    const handler = filter.custom<typeof Article>((query) => {
+      // compile-time proof: the narrowed builder knows Article's
+      // relation names, so 'comments' is assignable where the wide
+      // builder would reject it as never
+      type RelationName = Parameters<typeof query.whereHas>[0]
+      const relation: RelationName = 'comments'
+      void relation
+    })
+
+    // runtime: custom passes the handler through untouched
+    assert.isFunction(handler)
+  })
+})
