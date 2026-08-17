@@ -1,6 +1,8 @@
 import { test } from '@japa/runner'
+import { HttpContextFactory } from '@adonisjs/core/factories/http'
 import { filter, applyFilters } from '../../src/filters.ts'
 import { JsonApiException } from '../../src/errors.ts'
+import { JsonApiResource } from '../../src/resource.ts'
 import { Article } from '../fixtures/models.ts'
 
 /**
@@ -124,5 +126,38 @@ test.group('applyFilters policy', () => {
 
   test('no filter params means no query changes', ({ assert }) => {
     assert.deepEqual(apply({}), [])
+  })
+})
+
+test.group('filter handlers receive the request context', () => {
+  function capturingResource() {
+    const captured: { ctx?: unknown } = {}
+    class FilteredResource extends JsonApiResource<Article> {
+      static model = () => Article
+      static filters = {
+        mine: filter.custom((_query, _value, context) => {
+          captured.ctx = context.ctx
+        }),
+      }
+    }
+    return { FilteredResource, captured }
+  }
+
+  test('a custom filter can read the current request', ({ assert }) => {
+    const { FilteredResource, captured } = capturingResource()
+    const httpContext = new HttpContextFactory().create()
+
+    // the query object is opaque to the handler under test
+    applyFilters({} as never, Article, FilteredResource, { mine: '1' }, httpContext)
+
+    assert.strictEqual(captured.ctx, httpContext)
+  })
+
+  test('the low-level path outside a request leaves ctx undefined', ({ assert }) => {
+    const { FilteredResource, captured } = capturingResource()
+
+    applyFilters({} as never, Article, FilteredResource, { mine: '1' })
+
+    assert.isUndefined(captured.ctx)
   })
 })

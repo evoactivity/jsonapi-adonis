@@ -1,3 +1,4 @@
+import type { HttpContext } from '@adonisjs/core/http'
 import type { LucidModel, ModelQueryBuilderContract } from '@adonisjs/lucid/types/model'
 import { JsonApiException } from './errors.ts'
 import { csvList } from './params.ts'
@@ -11,15 +12,23 @@ import { resolveColumn } from './query.ts'
 export type FilterQuery = ModelQueryBuilderContract<LucidModel>
 
 /**
+ * What a filter handler knows about where it is being applied. ctx is
+ * the request when filtering runs inside one, so a handler can depend
+ * on the viewer (the current user's favourites, say), and undefined on
+ * the low-level path outside any request.
+ */
+export type FilterContext = {
+  Model: LucidModel
+  name: string
+  ctx?: HttpContext
+}
+
+/**
  * A declared filter: receives the model query builder, the raw value from
  * `?filter[name]=...` (a string, or an array when the client sent commas),
  * and metadata about where it is being applied.
  */
-export type FilterHandler = (
-  query: FilterQuery,
-  value: unknown,
-  context: { Model: LucidModel; name: string }
-) => void
+export type FilterHandler = (query: FilterQuery, value: unknown, context: FilterContext) => void
 
 /**
  * Nothing is filterable unless the resource declares it:
@@ -111,8 +120,10 @@ export const filter = {
    * Full control: receive the Lucid query builder and the raw value.
    * Scopes, joins and subqueries all work here.
    */
-  custom(handler: (query: FilterQuery, value: unknown) => void): FilterHandler {
-    return (query, value) => handler(query, value)
+  custom(
+    handler: (query: FilterQuery, value: unknown, context: FilterContext) => void
+  ): FilterHandler {
+    return handler
   },
 }
 
@@ -147,7 +158,8 @@ export function applyFilters(
   query: FilterQuery,
   Model: LucidModel,
   ResourceClass: { filters?: Record<string, FilterHandler> },
-  filters: Record<string, unknown>
+  filters: Record<string, unknown>,
+  ctx?: HttpContext
 ): void {
   for (const [name, value] of Object.entries(filters)) {
     const handler = ResourceClass.filters?.[name]
@@ -157,6 +169,6 @@ export function applyFilters(
         `"${name}" is not a supported filter for ${Model.name}`
       )
     }
-    handler(query, value, { Model, name })
+    handler(query, value, { Model, name, ctx })
   }
 }

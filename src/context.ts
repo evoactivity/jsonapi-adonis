@@ -134,7 +134,13 @@ export class JsonApiRequestContext {
     const preloadScopes = preloadScopesFor(query)
     applyIncludes(dynamicQuery, this.params.include, model, preloadScopes)
     applySort(dynamicQuery, model, this.params.sort)
-    applyFilters(dynamicQuery, model, this.#registry.resourceFor(model), this.params.filter)
+    applyFilters(
+      dynamicQuery,
+      model,
+      this.#registry.resourceFor(model),
+      this.params.filter,
+      this.#ctx
+    )
     return query
   }
 

@@ -3,3 +3,5 @@
 # changelog, so neither should be hand-formatted.
 pnpm-lock.yaml
 CHANGELOG.md
+# Regenerated unformatted by the example app's migrations
+examples/blog/database/schema.ts
