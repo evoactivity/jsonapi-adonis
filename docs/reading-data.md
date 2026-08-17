@@ -205,6 +205,13 @@ export default class ArticleResource extends JsonApiResource<Article> {
     search: filter.custom((query, value) => {
       query.where((q) => q.whereILike('title', `%${value}%`).orWhereILike('body', `%${value}%`))
     }),
+
+    // Handlers also receive { Model, name, ctx }. ctx is the request
+    // when filtering runs inside one, so a filter can depend on the
+    // viewer; it is undefined on the low-level path outside a request.
+    mine: filter.custom((query, _value, { ctx }) => {
+      query.where('author_id', ctx!.auth.user!.id)
+    }),
   }
 }
 ```
