@@ -1,5 +1,16 @@
 # Changelog
 
+## Release (2026-08-17)
+
+* @evoactivity/jsonapi-adonis 0.5.0 (minor)
+
+#### :rocket: Enhancement
+* `@evoactivity/jsonapi-adonis`
+  * [#18](https://github.com/evoactivity/jsonapi-adonis/pull/18) Pass the request context to filter handlers ([@evoactivity](https://github.com/evoactivity))
+
+#### Committers: 1
+- Liam ([@evoactivity](https://github.com/evoactivity))
+
 ## Release (2026-08-16)
 
 * @evoactivity/jsonapi-adonis 0.4.0 (minor)
