@@ -1,8 +1,8 @@
 # Errors and content negotiation
 
-## What an error document looks like
+## The error document
 
-A JSON:API error response has no `data`. It carries an `errors` array instead, with one error object per problem. It is served as `application/vnd.api+json`, like everything else. This is a real response from the example app, a validation failure on `POST /api/v1/articles`:
+An error response has no `data`. It carries an `errors` array, one object per problem, served as `application/vnd.api+json` like every other response. This is a real validation failure on `POST /api/v1/articles`:
 
 ```json
 HTTP/1.1 422 Unprocessable Content
@@ -29,38 +29,35 @@ Content-Type: application/vnd.api+json
 }
 ```
 
-Each error object can carry:
+An error object can carry these members:
 
-| Member             | Meaning                                                               |
-| ------------------ | --------------------------------------------------------------------- |
-| `status`           | The HTTP status, as a string (one document can mix statuses)          |
-| `code`             | An application-specific identifier, here the failing Vine rule        |
-| `title`            | A short, general description of the problem                           |
-| `detail`           | A human-readable explanation of this occurrence                       |
-| `source.pointer`   | A JSON Pointer into the request document that caused the problem      |
-| `source.parameter` | The query parameter at fault, for input errors like a bad `?include=` |
-| `source.header`    | The header at fault, for content negotiation failures                 |
-| `meta`             | Anything else you want to attach                                      |
+| Member             | Meaning                                                             |
+| ------------------ | ------------------------------------------------------------------- |
+| `status`           | The HTTP status, as a string. One document can mix statuses         |
+| `code`             | An application-specific code, here the failing Vine rule            |
+| `title`            | A short, general description of the problem                         |
+| `detail`           | A human-readable explanation of this occurrence                     |
+| `source.pointer`   | A JSON Pointer into the request document at fault                   |
+| `source.parameter` | The query parameter at fault, for a bad `?include=` or `?filter[]=` |
+| `source.header`    | The header at fault, for a content negotiation failure              |
+| `meta`             | Anything else you attach                                            |
 
-Query-parameter problems point at the parameter instead of the body. A request for `?include=nonsense` returns:
+`source` tells the client where the problem is. A body problem points at a pointer. A query problem points at the parameter. A bad `?include=nonsense` returns `source: { parameter: "include" }` and a `400`.
 
-```json
-{
-  "jsonapi": { "version": "1.1" },
-  "errors": [
-    {
-      "status": "400",
-      "title": "Invalid Query Parameter",
-      "detail": "\"nonsense\" is not a supported include path for Article",
-      "source": { "parameter": "include" }
-    }
-  ]
-}
-```
+## One function maps every error
 
-## Rendering errors
+`toErrorDocument(error, debug)` is a pure function that turns any thrown value into `{ status, body }`. It has four branches:
 
-Every error can render as a spec-compliant errors document. Delegate from your exception handler:
+- A `JsonApiException` already carries its own error objects (an invalid parameter, a deserialization conflict). The package throws these, and you can throw your own.
+- A VineJS validation error becomes a `422` with one error object per failed field, each with a `/data/attributes/...` pointer.
+- Any other HTTP exception (a `404` from `findOrFail`, an auth failure) maps its status and a matching title.
+- Anything else is an opaque `500`. The `detail` is filled only in debug mode, so an internal message never leaks in production.
+
+Because it is pure, the same function serves a job or a test with no HTTP request. See [Building blocks](./low-level.md#error-documents-anywhere).
+
+## Rendering errors in your app
+
+`toErrorDocument` runs from your exception handler through `renderJsonApiError`. Guard it so only JSON:API requests get JSON:API errors:
 
 ```ts
 // app/exceptions/handler.ts
@@ -74,7 +71,7 @@ async handle(error: unknown, ctx: HttpContext) {
 }
 ```
 
-`handlesErrors()` detects JSON:API requests automatically. Either the matched route was registered via `router.jsonApiResource()`, or the client sends the JSON:API media type in its `Accept` or `Content-Type` header. If you want to decide yourself, for example everything under a URL prefix including unmatched 404s, set the predicate in `config/jsonapi.ts`:
+`handlesErrors()` returns true when either condition holds: the matched route was registered by `router.jsonApiResource()`, or the client named the JSON:API media type in its `Accept` or `Content-Type` header. To decide another way, for example every URL under a prefix including unmatched 404s, set a predicate in the config:
 
 ```ts
 export default defineConfig({
@@ -82,27 +79,21 @@ export default defineConfig({
 })
 ```
 
-What renders how:
-
-- VineJS validation failures become `422` with one error object per failure, each pointing into the request document (`source: { pointer: "/data/attributes/title" }`).
-- HTTP exceptions (404s from `findOrFail`, auth failures, …) map their status and title.
-- Anything else is an opaque `500`, with details included only in debug mode.
-- Exceptions thrown by this package (invalid parameters, deserialization conflicts, …) are `JsonApiException` instances carrying ready-made error objects. You can throw your own, too.
-
 ## Content negotiation
 
-The `jsonApi` middleware implements the spec's media type rules:
+The `jsonApi` named middleware runs the spec's media type rules. Apply it to your resource route group.
 
-- A JSON:API `Content-Type` with media type parameters gets a `415`. An `Accept` header whose JSON:API offers are all parameterized gets a `406`.
-- `profile` parameters are always accepted, because the spec lets servers ignore unrecognized profiles.
-- `ext` parameters are treated as a contract. An extension this package does not handle is rejected with `415` or `406`, not processed without warning as a plain document. No extensions work yet. Atomic Operations will be the first.
+- A request `Content-Type` of the JSON:API media type, with any media type parameter other than `profile` or a supported `ext`, is a `415`.
+- An `Accept` header that names the JSON:API media type, where no listed instance of it is acceptable, is a `406`.
+- A `profile` parameter always passes, because the spec lets a server ignore a profile it does not know.
+- An `ext` parameter is a contract. An extension the package does not support is a `415` or `406`, not a document processed as if the extension were absent. No extensions are supported yet. Atomic Operations will be the first.
 
-All responses are served as `application/vnd.api+json`.
+Every response is served as `application/vnd.api+json`.
 
 ## Strict query parameters
 
-One more strict-input rule is in the query-string parser. The spec reserves simple lowercase parameter names for itself, so an unrecognized all-lowercase parameter (`?foo=bar`) is a `400`. Application-specific parameters must contain a non-lowercase character (`?cacheBust=1`, `?api_key=…`), and the package ignores them.
+The spec reserves simple lowercase parameter names for itself. So an unrecognized all-lowercase parameter (`?foo=bar`) is a `400`. Your own parameters must contain a non-lowercase character (`?cacheBust=1`, `?api_key=…`), and the package ignores them.
 
 ---
 
-Next: [Reference](./reference.md)
+Next: [Building blocks](./low-level.md) · [Reference](./reference.md)
