@@ -2,7 +2,7 @@
 
 # Adonis JSON:API
 
-Serve a spec-compliant API from your existing Lucid models with a few lines per endpoint. Includes, sparse fieldsets, sorting, filtering, pagination, error documents, content negotiation and full write support are all handled for you.
+Serve a spec-compliant JSON:API from your Lucid models. Every model serializes with no configuration, and each endpoint is a few lines. The package builds compound documents, includes, sparse fieldsets, sorting, filtering, pagination, error documents, content negotiation, and full write support.
 
 ```ts
 // A complete JSON:API endpoint:
@@ -12,7 +12,7 @@ async index({ jsonApi }: HttpContext) {
 }
 ```
 
-New to JSON:API itself? Start with [What is JSON:API?](./docs/what-is-jsonapi.md)
+New to the format? Start with [JSON:API concepts](./docs/concepts.md).
 
 ## Installation
 
@@ -20,38 +20,13 @@ New to JSON:API itself? Start with [What is JSON:API?](./docs/what-is-jsonapi.md
 node ace add @evoactivity/jsonapi-adonis
 ```
 
-This installs the package and configures it: it creates `config/jsonapi.ts`, then registers the provider, the `jsonApi` named middleware and the generator commands.
+This installs the package and configures it. It writes `config/jsonapi.ts`, registers the provider and the `jsonApi` named middleware, and registers the generator commands.
 
-**Requirements:** AdonisJS v7 (`@adonisjs/core` ^7), Lucid v22 (`@adonisjs/lucid` ^22).
+**Requirements.** AdonisJS v7 (`@adonisjs/core` ^7) and Lucid v22 (`@adonisjs/lucid` ^22).
 
-## Quick start
+## A complete controller
 
-**1. Generate a resource and controllers** for one of your models:
-
-```sh
-node ace make:jsonapi:resource article --relationships --routes
-```
-
-This creates `app/resources/article_resource.ts` and the controllers, and registers the routes. You can also write them by hand, see the [reference](./docs/reference.md). Register the resource in `config/jsonapi.ts`:
-
-```ts
-export default defineConfig({
-  resources: [() => import('#resources/article_resource')],
-})
-```
-
-> [!NOTE]
-> Resource classes are optional. Every model serializes automatically with its type, attributes and relationships derived from Lucid metadata, so a controller alone works fine: `node ace make:jsonapi:controller article` generates just the controllers, and there's nothing to register in the config. Write a resource class when you want to customize the output, see [Customizing a resource](./docs/reading-data.md#customizing-a-resource).
-
-**2. That's it. Make a request:**
-
-```
-GET /api/v1/articles/1?include=author,tags
-```
-
-You get a complete JSON:API document: the article as primary `data`, the author and tags in `included` (deduplicated), relationship linkage, `self` and `related` links, and the `application/vnd.api+json` content type. The `?include=` paths were validated and preloaded in one pass. Unknown paths get a 400, as the spec requires, and there are no N+1 queries.
-
-The generated controller is plain AdonisJS. `jsonApi.query(Article)` is literally `Article.query()` with the request's `include`, `sort` and `filter` parameters applied, and you can chain `.where()`, scopes and `.paginate()` as usual:
+`jsonApi.query(Model)` is `Model.query()` with the request's `include`, `sort`, and `filter` already applied, so you chain `.where()`, scopes, and `.paginate()` as usual. `jsonApi.render(...)` builds the document and sets the media type:
 
 ```ts
 export default class ArticlesController {
@@ -74,44 +49,33 @@ export default class ArticlesController {
 }
 ```
 
-**3. Render errors as JSON:API documents.** One branch in your exception handler:
-
-```ts
-// app/exceptions/handler.ts
-import { renderJsonApiError } from '@evoactivity/jsonapi-adonis'
-
-async handle(error: unknown, ctx: HttpContext) {
-  if (ctx.jsonApi.handlesErrors()) {
-    return renderJsonApiError(error, ctx, this.debug)
-  }
-  return super.handle(error, ctx)
-}
-```
-
-Models without a resource class serialize automatically, with the type, attributes and relationships derived from Lucid metadata. You only write resource classes to customize.
+A request like `GET /api/v1/articles/1?include=author,tags` returns the article as `data`, the author and tags in `included` with duplicates removed, the linkage, `self` and `related` links, and the `application/vnd.api+json` content type. Unknown include paths get a `400`, and there are no N+1 queries. The [Getting started](./docs/getting-started.md) guide walks through the full setup.
 
 ## Documentation
 
-| Guide                                            | Covers                                                                                        |
-| ------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| [What is JSON:API?](./docs/what-is-jsonapi.md)   | The ideas behind the spec                                                                     |
-| [Reading data](./docs/reading-data.md)           | Resources and types, customizing, `include`, sparse fieldsets, sorting, pagination, filtering |
-| [Writing data](./docs/writing-data.md)           | Create, update and delete from JSON:API documents, relationship endpoints                     |
-| [Polymorphism](./docs/polymorphism.md)           | Mixed-type relationships: the database shapes, trade-offs, and single-table inheritance       |
-| [Links](./docs/links.md)                         | Route-driven URL generation, API versioning, casing                                           |
-| [Errors & negotiation](./docs/errors.md)         | Error documents, `handlesErrors()`, media type rules                                          |
-| [Low-level building blocks](./docs/low-level.md) | Serializing outside a request: commands, jobs, tests                                          |
-| [Reference](./docs/reference.md)                 | The `jsonApi` helper API, configuration, generators, roadmap                                  |
+| Guide                                        | Covers                                                      |
+| -------------------------------------------- | ----------------------------------------------------------- |
+| [Concepts](./docs/concepts.md)               | The format, and where this package fits                     |
+| [Getting started](./docs/getting-started.md) | Install, generate, first request, error rendering           |
+| [Resources](./docs/resources.md)             | How a model becomes a resource, and how to customize it     |
+| [Queries](./docs/queries.md)                 | `include`, sparse fieldsets, sorting, pagination, filtering |
+| [Scopes](./docs/scopes.md)                   | Row visibility with `withScopes` and `withPreloadScopes`    |
+| [Writes](./docs/writes.md)                   | Create, update, delete, and the relationship endpoints      |
+| [Polymorphism](./docs/polymorphism.md)       | Mixed-type relationships with single-table inheritance      |
+| [Links](./docs/links.md)                     | Route-driven URLs, API versioning, casing                   |
+| [Errors and negotiation](./docs/errors.md)   | Error documents, `handlesErrors()`, media type rules        |
+| [Building blocks](./docs/low-level.md)       | Serializing outside a request: commands, jobs, tests        |
+| [Reference](./docs/reference.md)             | The `jsonApi` helper API, config, generators, roadmap       |
 
 ## The example app
 
-[`examples/blog`](./examples/blog) is a complete AdonisJS application (articles, comments, tags, users) exercising every feature. The same resources are mounted under `/api/v1` and `/api/v2` to demonstrate versioned links.
+[`examples/blog`](./examples/blog) is a complete AdonisJS application with articles, comments, tags, users, and attachments. It uses every feature, and mounts the same resources under `/api/v1` and `/api/v2` to show versioned links.
 
 ```sh
 pnpm install
 cd examples/blog
 node ace migration:run
-node ace db:seed        # demo data: authors, articles, tags, comments
+node ace db:seed
 node ace serve --watch
 
 curl 'localhost:3333/api/v1/articles?include=author,tags'
