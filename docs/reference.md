@@ -2,7 +2,7 @@
 
 ## The `jsonApi` context helper
 
-Everything hangs off the `jsonApi` context property, installed by the provider. Destructure it as `{ jsonApi }: HttpContext` or use `ctx.jsonApi`, whichever you prefer:
+Everything comes from the `jsonApi` context property, installed by the provider. Destructure it as `{ jsonApi }: HttpContext`, or use `ctx.jsonApi`, whichever you prefer:
 
 | Member                                     | What it does                                                                             |
 | ------------------------------------------ | ---------------------------------------------------------------------------------------- |
@@ -16,12 +16,12 @@ Everything hangs off the `jsonApi` context property, installed by the provider. 
 | `renderRelationship(row, name)`            | Linkage document for `GET …/relationships/:name`                                         |
 | `updateRelationship(row, name, action)`    | Apply a relationship write (`'replace' \| 'add' \| 'remove'`)                            |
 | `renderRelated(row, name)`                 | Document of the related resources for `GET …/:name`                                      |
-| `handlesErrors()`                          | Whether this request's errors should render as JSON:API documents                        |
+| `handlesErrors()`                          | Whether this request's errors render as JSON:API documents                               |
 | `links`                                    | The request's `LinkBuilder` (rarely needed directly)                                     |
 
-The builder returned by `query(Model)` is a normal Lucid query builder: chain `withScopes()` to constrain the primary data and `withPreloadScopes()` to constrain included relations. See [Scopes on reads](./reading-data.md#scopes-on-reads).
+The builder returned by `query(Model)` is a normal Lucid query builder. Chain `withScopes()` to constrain the primary data, and `withPreloadScopes()` to constrain included relations. See [Scopes on reads](./reading-data.md#scopes-on-reads).
 
-Lower-level building blocks (`DocumentBuilder`, `JsonApiRegistry`, `parseQueryParams`, `deserializeResourceDocument`, `toErrorDocument`, …) are all exported from `@evoactivity/jsonapi-adonis` if you need to assemble custom behavior. See [Low-level building blocks](./low-level.md) for how to use them outside a request.
+The lower-level building blocks (`DocumentBuilder`, `JsonApiRegistry`, `parseQueryParams`, `deserializeResourceDocument`, `toErrorDocument`, …) are all exported from `@evoactivity/jsonapi-adonis`. Use them to assemble custom behavior. See [Low-level building blocks](./low-level.md) for how to use them outside a request.
 
 ## Configuration
 
@@ -59,15 +59,15 @@ node ace make:jsonapi:controller comment                 # controllers only, no 
 node ace make:jsonapi:controller comment -r --routes     #   class (auto-derived resource)
 ```
 
-For `article`, `make:jsonapi:resource` creates `app/resources/article_resource.ts` (type `articles`, with commented-out attribute and filter customization hooks) and `app/controllers/articles_controller.ts` with index/show/store/update/destroy, ready to run. With `--relationships` it also creates `article_relationships_controller.ts`, serving the `/relationships/:relation` endpoints.
+For `article`, `make:jsonapi:resource` creates two files. It creates `app/resources/article_resource.ts` (type `articles`, with commented-out attribute and filter customization hooks). It creates `app/controllers/articles_controller.ts` with index/show/store/update/destroy, ready to run. With `--relationships` it also creates `article_relationships_controller.ts`, which serves the `/relationships/:relation` endpoints.
 
 Use `make:jsonapi:controller` when the auto-derived resource is all you need. It generates the controllers without a resource class.
 
-With `--routes`, the command appends a ready-made `router.jsonApiResource(...)` group to `start/routes.ts`, skipping if the type is already registered. Move it inside your versioned API group if you have one. Without the flag, the registration snippets are printed for you to paste.
+With `--routes`, the command appends a ready-made `router.jsonApiResource(...)` group to `start/routes.ts`. It skips the append if the type is already registered. If you have a versioned API group, move the group inside it. Without the flag, the registration snippets are printed for you to paste.
 
 ## Selecting routes
 
-`router.jsonApiResource(type, controllers, options)` registers every route the given controllers support. The third `options` argument narrows that with two independent lists. `only` selects resource routes; `relationshipsOnly` selects relationship routes. Each token matches its controller method name.
+`router.jsonApiResource(type, controllers, options)` registers every route the given controllers have. The third `options` argument limits that with two independent lists. `only` selects resource routes. `relationshipsOnly` selects relationship routes. Each token matches its controller method name.
 
 `only` tokens (the `resource` controller):
 
@@ -89,7 +89,7 @@ With `--routes`, the command appends a ready-made `router.jsonApiResource(...)` 
 | `remove`  | `DELETE /articles/:id/relationships/:relation` |
 | `related` | `GET /articles/:id/:relation`                  |
 
-Omit a list and every route on that axis registers; pass it and only the listed tokens do. The two are independent, so subsetting one leaves the other whole. To keep all resource routes but only the relationship reads:
+Omit a list, and every route on that axis registers. Pass it, and only the listed tokens register. The two are independent, so a subset of one leaves the other whole. To keep all resource routes but only the relationship reads:
 
 ```ts
 router.jsonApiResource(
@@ -104,4 +104,4 @@ router.jsonApiResource(
 
 ## Roadmap
 
-- **[Atomic Operations](https://jsonapi.org/ext/atomic/)**, the official JSON:API extension for performing multiple writes in a single request, applied in one transaction. Either every operation succeeds or none do. This is also the planned answer for the bulk-write cases individual endpoints handle awkwardly, like clearing or re-parenting a `hasMany` relationship (rejected with `403` today), which decomposes cleanly into explicit per-child operations inside one atomic request.
+- **[Atomic Operations](https://jsonapi.org/ext/atomic/)**, the official JSON:API extension for multiple writes in a single request, applied in one transaction. Either every operation succeeds or none do. This is also the planned answer for the bulk-write cases that individual endpoints handle awkwardly, like clearing or re-parenting a `hasMany` relationship (rejected with `403` today). Those break down cleanly into explicit per-child operations inside one atomic request.

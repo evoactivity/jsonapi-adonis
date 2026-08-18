@@ -1,6 +1,6 @@
-# The building blocks: using @evoactivity/jsonapi-adonis outside a request
+# The building blocks for use outside a request
 
-The `jsonApi` context helper is a thin facade. Everything it does is built from exported pieces you can compose yourself, which is how you produce or consume JSON:API documents where there is no HTTP request: ace commands, queue jobs, scheduled tasks, tests, webhook processors, or static exports for a frontend.
+The `jsonApi` context helper is a thin facade. Everything it does is built from exported pieces you can compose yourself. You use these pieces to produce or consume JSON:API documents where there is no HTTP request: ace commands, queue jobs, scheduled tasks, tests, webhook processors, or static exports for a frontend.
 
 ## The pieces
 
@@ -25,11 +25,11 @@ import { JsonApiRegistry } from '@evoactivity/jsonapi-adonis'
 const registry = await app.container.make(JsonApiRegistry)
 ```
 
-You can also construct a fresh `new JsonApiRegistry()` and `.register([...])` resource classes manually. That's useful in unit tests, or when you want different resources than the HTTP layer exposes.
+You can also construct a fresh `new JsonApiRegistry()` and `.register([...])` resource classes by hand. This is useful in unit tests, or when you want different resources than the HTTP layer shows.
 
 ## Serializing without a request
 
-Here is a complete, runnable example: an ace command that exports articles as a JSON:API document. This exact command ships in the example app as `examples/blog/commands/export_articles.ts`.
+Here is a complete, runnable example: an ace command that exports articles as a JSON:API document. This exact command is in the example app as `examples/blog/commands/export_articles.ts`.
 
 ```ts
 import { BaseCommand, flags } from '@adonisjs/core/ace'
@@ -81,7 +81,7 @@ export default class ExportArticles extends BaseCommand {
 node ace export:articles --include=author,tags
 ```
 
-The same pattern works anywhere you have a booted application. Build `params`, either from user input via `parseQueryParams` or by constructing the object directly, preload what the include tree needs, and hand the rows to a `DocumentBuilder`.
+The same pattern works anywhere you have a booted application. Build `params`, either from user input via `parseQueryParams` or by constructing the object directly. Preload what the include tree needs, and give the rows to a `DocumentBuilder`.
 
 `build()` accepts a single row, an array, a Lucid paginator, or `null`, plus optional top-level extras: `builder.build(rows, { meta: { exportedAt: ... }, links: { ... } })`.
 
@@ -124,7 +124,7 @@ All the write-side error semantics apply (400/403/409, and 404 via `verifyRelate
 
 ## Error documents anywhere
 
-`toErrorDocument(error, debug)` is pure. It maps any thrown value to `{ status, body }` where `body` is a spec-compliant errors document. Handy for jobs that report failures in JSON:API shape, or for testing error mappings without a server:
+`toErrorDocument(error, debug)` is pure. It maps any thrown value to `{ status, body }`, where `body` is a spec-compliant errors document. This is useful for jobs that report failures in JSON:API shape, or for testing error mappings without a server:
 
 ```ts
 import { toErrorDocument } from '@evoactivity/jsonapi-adonis'
@@ -134,8 +134,8 @@ const { status, body } = toErrorDocument(error, false)
 
 ## Caveats
 
-- **Pagination links need a request.** `first`, `prev`, `next` and `last` are built from the request URL and query string. Without a ctx they come out `null`, though the `meta.page` totals are still emitted. Pass your own via `build(rows, { links: { ... } })` if you need them.
-- **`this.ctx` is `undefined` in resource classes** during ctx-less serialization. Write `attributes()` and `meta()` implementations defensively (`this.ctx?.auth...`) if they use it.
+- **Pagination links need a request.** `first`, `prev`, `next`, and `last` are built from the request URL and query string. Without a ctx they are `null`, but the `meta.page` totals are still emitted. If you need the links, pass your own via `build(rows, { links: { ... } })`.
+- **`this.ctx` is `undefined` in resource classes** during ctx-less serialization. If `attributes()` and `meta()` use it, guard them with `this.ctx?.auth...`.
 - **Boot the app first.** Resource classes are registered in the provider's `ready` phase, and models need the database. In ace commands, set `static options = { startApp: true }`.
 
 ---

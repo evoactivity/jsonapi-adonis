@@ -1,19 +1,19 @@
 # Reading data
 
-How models become resources, and how the read-side query parameters (`include`, `fields`, `sort`, `page`, `filter`) behave.
+This page explains how models become resources. It also explains how the read-side query parameters (`include`, `fields`, `sort`, `page`, `filter`) behave.
 
 ## Resources and types
 
-Every Lucid model can serialize as a JSON:API resource with zero configuration. The defaults come from the model's own metadata:
+Every Lucid model can serialize as a JSON:API resource with no configuration. The defaults come from the model's own metadata:
 
 - **type** is the kebab-cased table name (`users`, `articles`, `access-tokens`)
 - **id** is the primary key, converted to a string (the spec requires string ids)
-- **attributes** are the serializable columns, minus the primary key and any belongsTo foreign keys (those are represented as relationships instead). `serializeAs` is respected, and columns marked `serializeAs: null`, like password hashes, never appear.
+- **attributes** are the serializable columns. This set excludes the primary key and any belongsTo foreign keys, which become relationships instead. `serializeAs` applies, and columns marked `serializeAs: null`, like password hashes, never appear.
 - **relationships** are the relations defined on the model
 
 ## Customizing a resource
 
-Create a resource class when you want control over any of the defaults, and register it in `config/jsonapi.ts`:
+Write a resource class when you want control over any of the defaults. Register it in `config/jsonapi.ts`:
 
 ```ts
 // app/resources/user_resource.ts
@@ -32,11 +32,11 @@ export default defineConfig({
 })
 ```
 
-That class above is already valid. `static model` is the only required member; registering without it throws, and everything else falls back to the auto-derived behavior. Inside any instance method, `this.resource` is the Lucid model instance being serialized (typed by the generic) and `this.ctx` is the current HttpContext when serialization happens inside a request, or `undefined` outside one.
+The class above is already valid. `static model` is the only required member. Registering without it throws, and everything else uses the auto-derived behavior. Inside any instance method, `this.resource` is the Lucid model instance to serialize, typed by the generic. `this.ctx` is the current HttpContext when serialization runs inside a request, and `undefined` outside one.
 
-Why is `static model` required when serialization itself doesn't need a resource class? The registry is a map from model class to resource class: serialization starts from a Lucid row, so the model is always the known side, and auto-derivation is just what happens on a map miss. Registering a class means filing it under a key, and `static model` is that key. Without the key the class would be unreachable, so the registry fails loudly instead of silently ignoring a resource you wrote.
+Why is `static model` required when serialization does not need a resource class? The registry is a map from model class to resource class. Serialization starts from a Lucid row, so the model is always the known side, and auto-derivation is what happens on a map miss. Registering a class means storing it under a key, and `static model` is that key. Without the key the class is unreachable, so the registry throws an error instead of ignoring a resource you wrote.
 
-Every claim in this section is pinned by [`tests/unit/resource_customization.spec.ts`](../tests/unit/resource_customization.spec.ts). If the docs and the code ever disagree, that suite fails.
+Every claim in this section has a test in [`tests/unit/resource_customization.spec.ts`](../tests/unit/resource_customization.spec.ts). If the docs and the code disagree, that suite fails.
 
 Here is the full surface:
 
@@ -53,7 +53,7 @@ Here is the full surface:
 
 ### `static type`
 
-Overrides the resource type everywhere the model appears: primary data, linkage pointers, `included`, and the type clients must send in write requests.
+Overrides the resource type everywhere the model appears. This includes primary data, linkage pointers, `included`, and the type clients must send in write requests.
 
 ```ts
 export default class UserResource extends JsonApiResource<User> {
@@ -64,7 +64,7 @@ export default class UserResource extends JsonApiResource<User> {
 
 ### `id()`
 
-The default returns the primary key as a string. Override it to expose a different public identity, a slug or a prefixed id for example. The override is honoured everywhere: `data.id`, relationship linkage, and `included` all agree, because dedup and pointers go through the same method.
+The default returns the primary key as a string. Override it to show a different public identity, for example a slug or a prefixed id. The override applies everywhere. `data.id`, relationship linkage, and `included` all agree, because deduplication and pointers go through the same method.
 
 ```ts
 id() {
@@ -72,11 +72,11 @@ id() {
 }
 ```
 
-Note the id is identity, not decoration. If you override it on a resource that has write endpoints, clients will send this id back and your controllers must be able to look records up by it.
+The id is identity, not decoration. If you override it on a resource that has write endpoints, clients send this id back, and your controllers must be able to find records by it.
 
 ### `attributes()`
 
-The default returns every serializable column except the primary key (already in `id`), belongsTo foreign keys (already in `relationships`), and anything marked `serializeAs: null`. Override it to curate the set. `this.pick([...])` selects columns by their serialized names, and computed values are plain properties:
+The default returns every serializable column except three: the primary key (already in `id`), belongsTo foreign keys (already in `relationships`), and anything marked `serializeAs: null`. Override it to choose the set. `this.pick([...])` selects columns by their serialized names, and computed values are plain properties:
 
 ```ts
 attributes() {
@@ -87,11 +87,11 @@ attributes() {
 }
 ```
 
-Sparse fieldsets (`?fields[type]=`) filter whatever this method returns, so computed attributes participate like any other.
+Sparse fieldsets (`?fields[type]=`) filter whatever this method returns, so computed attributes work like any other.
 
 ### `links()`
 
-Whatever you return is merged over the generated links, which means you can add links or replace the generated `self`:
+Whatever you return is merged over the generated links. You can add links or replace the generated `self`:
 
 ```ts
 links() {
@@ -99,11 +99,11 @@ links() {
 }
 ```
 
-The generated `self` survives alongside your additions. Return a `self` key yourself and it wins over the generated one.
+The generated `self` stays next to your additions. If you return a `self` key, it replaces the generated one.
 
 ### `meta()`
 
-Attach per-resource metadata. Returning `undefined` or an empty object omits the `meta` member entirely, so it's safe to make it conditional:
+Attach per-resource metadata. If you return `undefined` or an empty object, the `meta` member is omitted, so you can make it conditional:
 
 ```ts
 meta() {
@@ -113,15 +113,15 @@ meta() {
 
 ### `static exposeRelationships`
 
-By default every relation defined on the model appears as a relationship member. List the ones you want to expose and the rest disappear from documents:
+By default every relation on the model appears as a relationship member. List the ones you want to show, and the rest disappear from documents:
 
 ```ts
 static exposeRelationships = ['author', 'tags']
 ```
 
-Hidden relations are hidden from `?include=` too. Asking to include one is rejected with a 400, exactly like an include path that does not exist, and no preloading happens for it. This keeps a deliberately hidden relation from being loaded (and paid for) just to be discarded at serialization.
+Hidden relations are also hidden from `?include=`. A request to include one is rejected with a `400`, exactly like an include path that does not exist, and no preload happens for it. A hidden relation is never loaded only to be dropped at serialization.
 
-A hidden relation is also unreachable through the relationship endpoints, for reads and writes both:
+A hidden relation is also unreachable through the relationship endpoints, for both reads and writes:
 
 ```
 GET    /articles/1/comments                 404
@@ -131,13 +131,13 @@ POST   /articles/1/relationships/comments   404
 DELETE /articles/1/relationships/comments   404
 ```
 
-The status is 404 rather than 403, so a hidden relation cannot be told apart from one that was never defined. A 403 would confirm the relation exists, which is the thing you were hiding.
+The status is `404`, not `403`, so a hidden relation looks the same as one that was never defined. A `403` shows the relation exists, which is the thing you were hiding.
 
-The same applies to the `relationships` member of a `POST` or `PATCH` body. A hidden relation there is rejected with the same 400 an unknown member gets. Hiding a relation removes it from the API everywhere: documents, `?include=`, the relationship endpoints, and write bodies.
+The same applies to the `relationships` member of a `POST` or `PATCH` body. A hidden relation there is rejected with the same `400` an unknown member gets. Hiding a relation removes it from the whole API. That means documents, `?include=`, the relationship endpoints, and write bodies.
 
 ### `static filters`
 
-Declares the `?filter[...]` parameters this resource accepts. Nothing is filterable without it. Covered in depth in [Filtering](#filtering) below.
+Declares the `?filter[...]` parameters this resource accepts. Nothing is filterable without it. [Filtering](#filtering) below covers it in depth.
 
 ## Relationships and included data
 
@@ -147,12 +147,12 @@ Clients ask for related resources with the `include` parameter. Paths can be nes
 GET /api/v1/articles/1?include=author,comments.author,tags
 ```
 
-The package validates every path against the model's relations (unsupported paths are a `400` with `source: { parameter: "include" }`, per spec), preloads the whole tree in one pass to avoid N+1 queries, and flattens the results into `included`, deduplicated by `(type, id)`. If the same user wrote the article and three of its comments, they appear once. Each resource's `relationships` member carries the `{ type, id }` linkage.
+The package does three things. It validates every path against the model's relations. Unsupported paths are a `400` with `source: { parameter: "include" }`, per spec. It preloads the whole tree in one pass to avoid N+1 queries. It flattens the results into `included`, deduplicated by `(type, id)`. If the same user wrote the article and three of its comments, they appear one time. Each resource's `relationships` member carries the `{ type, id }` linkage.
 
-A couple of behaviors deserve a mention:
+Two behaviors need a mention:
 
-- A `belongsTo` relationship gets linkage even without preloading. The foreign key already holds the answer, at zero query cost.
-- An unloaded to-many relationship is never reported as empty. It appears with `links` only, because `data: []` would be a lie. The spec distinguishes "empty" from "not loaded", and the client can follow the link to find out.
+- A `belongsTo` relationship gets linkage even without a preload. The foreign key already holds the answer, at no query cost.
+- An unloaded to-many relationship is never reported as empty. It appears with `links` only, because `data: []` is not true. The spec separates "empty" from "not loaded", and the client can follow the link to find out.
 
 All Lucid relation kinds serialize: `belongsTo` and `hasOne` as to-one, `hasMany`, `manyToMany` and `hasManyThrough` as to-many.
 
@@ -172,12 +172,12 @@ Returns articles with only a `title` attribute and `author` relationship, and in
 GET /api/v1/articles?sort=-createdAt,title&page[number]=2&page[size]=10
 ```
 
-- `sort` accepts comma-separated attribute names. A `-` prefix means descending. Names are matched against serialized attribute names and mapped to the underlying columns; unknown fields are a `400`.
-- `page[number]` and `page[size]` map to Lucid's paginator via `jsonApi.page`. Paginated responses carry `first`, `prev`, `next` and `last` links (which preserve your other query parameters, per spec) and a `meta.page` object with totals.
+- `sort` accepts comma-separated attribute names. A `-` prefix means descending. Names are matched against serialized attribute names and mapped to the underlying columns. Unknown fields are a `400`.
+- `page[number]` and `page[size]` map to Lucid's paginator via `jsonApi.page`. Paginated responses carry `first`, `prev`, `next`, and `last` links and a `meta.page` object with totals. The links keep your other query parameters, per spec.
 
 ## Filtering
 
-The spec reserves `filter[...]` but leaves its meaning to the server. This package takes a strict, declarative stance: nothing is filterable unless the resource says so. Declare filters on the resource class:
+The spec reserves `filter[...]` but leaves its meaning to the server. This package is strict and declarative. Nothing is filterable unless the resource says so. Declare filters on the resource class:
 
 ```ts
 import { JsonApiResource, filter } from '@evoactivity/jsonapi-adonis'
@@ -219,16 +219,16 @@ export default class ArticleResource extends JsonApiResource<Article> {
 The rules:
 
 - An undeclared filter name is a `400` with `source: { parameter: "filter[name]" }`. This is the same strict-input policy as `include` and `sort`. A resource with no `filters` rejects all filtering, and clients can never probe arbitrary columns.
-- Attribute names in `filter.eq()` and the comparison filters are serialized names, mapped to database columns for you. They default to the filter's own key, hence the bare `filter.eq()`.
+- Attribute names in `filter.eq()` and the comparison filters are serialized names, mapped to database columns for you. They default to the filter's own key, so the bare `filter.eq()` needs no argument.
 - Comma-separated values become `whereIn` for `eq` and `relation`. Comparison filters accept a single value only and return `400` otherwise.
 - Filters compose with everything else: `?filter[author]=7&filter[search]=lucid&sort=-createdAt&page[size]=10`.
-- The declaration doubles as documentation. The resource class _is_ the list of what your API's query surface supports.
+- The declaration is also documentation. The resource class is the full list of your API's query surface.
 
 ## Scopes on reads
 
-Filters are client input. Visibility is not: some rows a client must never see, whatever it asks for. Express that with Lucid model scopes, applied at read time, at the call site, so it stays a deliberate decision on every endpoint rather than hidden magic.
+Filters are client input. Visibility is not. Some rows a client must never see, whatever it asks for. Express that with Lucid model scopes, applied at read time, at the call site. It then stays a deliberate decision on every endpoint, not hidden behavior.
 
-Define the rule once, on the model, as a Lucid scope:
+Define the rule one time, on the model, as a Lucid scope:
 
 ```ts
 import { BaseModel, scope } from '@adonisjs/lucid/orm'
@@ -253,9 +253,9 @@ const articles = await jsonApi
 return jsonApi.render(articles)
 ```
 
-The map is **fully typed**: keys autocomplete to `Article`'s relations, and each callback's `scopes` is the related model's scope bag, exactly like `withScopes()`. A wrong relation name or a scope that model does not define is a compile error.
+The map is **fully typed**. Keys autocomplete to `Article`'s relations, and each callback's `scopes` is the related model's set of scopes, exactly like `withScopes()`. A wrong relation name, or a scope that model does not define, is a compile error.
 
-For nested includes, give the value an object with a `preload` of its own, typed to the next model down:
+For nested includes, give the value an object with a `preload` of its own, typed to the next model:
 
 ```ts
 .withPreloadScopes({
@@ -268,12 +268,12 @@ For nested includes, give the value an object with a `preload` of its own, typed
 })
 ```
 
-- `withScopes()` is Lucid's own; it constrains the root query. Nothing library-specific.
-- `withPreloadScopes()` is what this package adds. The include preloads are built for you from `?include=`, so you cannot reach them at the call site; this constrains them. Each callback is the exact shape of a `withScopes()` callback, so you reuse the related model's own named scopes rather than re-expressing the rule.
-- **Structural, typed at every level.** An entry is either a bare callback (scope that relation) or `{ scope?, preload? }` to also constrain deeper includes. Scopes apply along the path you write, so a relation on one branch never leaks to a same-named relation on another. A relation with no entry is left unconstrained.
-- **Order in the chain does not matter.** Preload constraints run when Lucid loads the relation, at execution, so `withPreloadScopes()` may come before or after other builder calls.
+- `withScopes()` is Lucid's own. It constrains the root query, with nothing library-specific.
+- `withPreloadScopes()` is what this package adds. The include preloads are built for you from `?include=`, so you cannot reach them at the call site. This method constrains them. Each callback is the exact shape of a `withScopes()` callback, so you reuse the related model's own named scopes instead of writing the rule again.
+- **Structural, typed at every level.** An entry is either a bare callback (scope that relation) or `{ scope?, preload? }` to also constrain deeper includes. Scopes apply along the path you write, so a relation on one branch never applies to a same-named relation on another. A relation with no entry stays unconstrained.
+- **Order in the chain does not matter.** Preload constraints run when Lucid loads the relation, at execution, so `withPreloadScopes()` can come before or after other builder calls.
 
-This is deliberately explicit and per-query. Visibility is a security concern, and a per-endpoint decision keeps it in plain sight in the code, rather than buried in a resource default that a new endpoint silently inherits or silently forgets. When several endpoints share a rule, factor the map into a shared helper; do not hide it.
+This is deliberately explicit and per-query. Visibility is a security concern. A per-endpoint decision keeps it visible in the code. It is not a resource default that a new endpoint inherits by accident or forgets by accident. When several endpoints share a rule, move the map into a shared helper. Do not hide it.
 
 ---
 

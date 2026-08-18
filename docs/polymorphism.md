@@ -13,11 +13,11 @@ In JSON:API terms, that means resource linkage whose identifiers carry different
 }
 ```
 
-Client-side data libraries expect exactly this shape. [WarpDrive's polymorphism guide](https://warp-drive.io/guides/the-manual/misc/relational-data/features/polymorphism), for instance, is explicit that linkage should carry the concrete type, not an abstract umbrella type, because `type` + `id` is a resource's whole identity and an umbrella type creates a second identity for the same row.
+Client-side data libraries expect exactly this shape. [WarpDrive's polymorphism guide](https://warp-drive.io/guides/the-manual/misc/relational-data/features/polymorphism), for example, is explicit that linkage must carry the concrete type, not an abstract umbrella type. The reason is that `type` + `id` is a resource's whole identity, and an umbrella type creates a second identity for the same row.
 
 ## Single-table inheritance
 
-Databases offer several ways to build the shape, such as one table per type joined by id, or Laravel-style `imageable_type` + `imageable_id` column pairs, which Lucid has no native relations for. This package supports one of them, **single-table inheritance (STI)**. All the types share one table, and a discriminator column says which type each row is, with columns only some types use sitting null on the others:
+Databases give several ways to build the shape. One table per type joined by id. Laravel-style `imageable_type` + `imageable_id` column pairs, which Lucid has no native relations for. This package works with one of them, **single-table inheritance (STI)**. All the types share one table. A discriminator column says which type each row is. Columns that only some types use are null on the others:
 
 ```
 sports_teams
@@ -26,15 +26,15 @@ sports_teams
   2    Saracens   rugby      NULL          312
 ```
 
-With one shared table, the database layer already works. Anything pointing at the family is an ordinary foreign key, a mixed to-many is an ordinary pivot, and plain `belongsTo` / `hasMany` / `manyToMany` declared against the base class work mechanically. Subclasses set `static table` to the shared table and scope their queries to their discriminator value.
+With one shared table, the database layer already works. Anything pointing at the family is an ordinary foreign key. A mixed to-many is an ordinary pivot. Plain `belongsTo`, `hasMany`, and `manyToMany` declared against the base class work with no extra code. Subclasses set `static table` to the shared table and scope their queries to their discriminator value.
 
-The only thing left to solve is _naming_, and it is a serialization problem, not a Lucid one. Lucid hydrates a relation's rows as the relation's declared target, the base class, which is correct behaviour for an ORM with no concept of a discriminator. The row still carries its discriminator column. Without the declarations on this page, the serializer derived a row's JSON:API type from its class rather than from the row, so base-hydrated rows serialized under the base type, and writes compared incoming identifiers against the one declared target type. Teaching the serializer to ask the row is what the rest of this page describes.
+The only thing left to solve is _naming_. It is a serialization problem, not a Lucid one. Lucid hydrates a relation's rows as the relation's declared target, the base class. That is correct behaviour for an ORM with no concept of a discriminator. The row still carries its discriminator column. Without the declarations on this page, the serializer took a row's JSON:API type from its class, not from the row. So base-hydrated rows serialized under the base type, and writes compared incoming identifiers against the one declared target type. The rest of this page describes how to make the serializer read the type from the row.
 
-Declaring nothing is also workable. The base serializes as one `sports-teams` type, the discriminator rides along as an ordinary attribute, and clients branch on it. Nothing in JSON:API forbids that, and for an API that is content to mirror its database it is less machinery. The declarations below exist so the API does not have to mirror the schema. Clients see `football-teams` and `rugby-teams` as if each had its own table, the shared table stays an implementation detail, and storage can be reorganized later without renaming anything a client depends on.
+You can also declare nothing. The base serializes as one `sports-teams` type. The discriminator becomes an ordinary attribute, and clients branch on it. Nothing in JSON:API forbids this, and for an API that is happy to mirror its database it is less code. The declarations below exist so the API does not have to mirror the schema. Clients see `football-teams` and `rugby-teams` as if each had its own table. The shared table stays an implementation detail. You can reorganize storage later without renaming anything a client depends on.
 
 ## Declaring the family
 
-Lucid's own serialization needs none of what follows. `row.serialize()` emits the columns, the discriminator among them, and that is all anyone expects of it, so with plain Adonis serialization STI simply works. JSON:API asks for more. Every resource object and every identifier must carry a `type`, and the correct type for an STI row is the concrete one. The declarations in this section are that extra effort. They hand the serializer the mapping from a row to its concrete type, which the model definitions alone do not carry.
+Lucid's own serialization needs none of what follows. `row.serialize()` emits the columns, the discriminator among them. That is all anyone expects of it, so with plain Adonis serialization STI works. JSON:API needs more. Every resource object and every identifier must carry a `type`, and the correct type for an STI row is the concrete one. The declarations in this section are that extra effort. They give the serializer the mapping from a row to its concrete type, which the model definitions alone do not carry.
 
 The examples below use one family. `SportsTeam` is the base, `FootballTeam` and `RugbyTeam` share its table, and `sport` is the discriminator.
 
@@ -96,7 +96,7 @@ export default class Fan extends BaseModel {
 }
 ```
 
-`Fan.favourites` is the relation that needs the declarations. It targets the base, so Lucid hydrates its rows as `SportsTeam` and only the discriminator says what each one is. Contrast a direct query. `FootballTeam.query()` hydrates `FootballTeam` instances, the class itself names the type, and those rows serialize as `football-teams` with no help. Giving base-targeted rows the same treatment takes two statics on the base resource. Each resource stays in its own file, scaffolded with `node ace make:jsonapi:resource`, and the subtype resources are ordinary resources:
+`Fan.favourites` is the relation that needs the declarations. It targets the base, so Lucid hydrates its rows as `SportsTeam`, and only the discriminator says what each one is. Compare a direct query. `FootballTeam.query()` hydrates `FootballTeam` instances. The class itself names the type, so those rows serialize as `football-teams` with no help. To give base-targeted rows the same result, add two statics to the base resource. Each resource stays in its own file, made with `node ace make:jsonapi:resource`. The subtype resources are ordinary resources:
 
 ```ts
 // app/resources/football_team_resource.ts
@@ -128,9 +128,9 @@ export default class SportsTeamResource extends JsonApiResource<SportsTeam> {
 }
 ```
 
-`resolveResource` serves reads. It takes a row and returns its concrete resource, typically by reading the discriminator, and returning `undefined` keeps the row on the base resource. `subtypes` serves writes. It lists the types a relation targeting the base accepts.
+`resolveResource` serves reads. It takes a row and returns its concrete resource, usually by reading the discriminator. Returning `undefined` keeps the row on the base resource. `subtypes` serves writes. It lists the types a relation targeting the base accepts.
 
-The two look similar but answer opposite questions, and neither can be derived from the other. When serializing, the input is a hydrated row, and the question is which one resource it belongs to, which only a function can answer. When validating a write, the input is a type string from the request body, and no row exists yet because the check runs before any database access, so the question is whether the string belongs to the family, and that needs the family as a list, which cannot be computed out of an opaque function.
+The two look similar but answer opposite questions, and neither can be derived from the other. For serialization, the input is a hydrated row. The question is which one resource it belongs to, and only a function can answer that. For a write, the input is a type string from the request body. No row exists yet, because the check runs before any database access. The question is whether the string belongs to the family. That needs the family as a list, which cannot be computed from an opaque function.
 
 Register all three in the config, the same as any other resource:
 
@@ -143,13 +143,13 @@ resources: [
 ]
 ```
 
-The base also registers its declared subtypes as a safety net. Registration is what gives a direct query its type, so a subtype missing from the map would make `FootballTeam.query()` rows serialize under an auto-derived type, and the safety net prevents that silent degradation when an entry is forgotten. It never overrides you. An explicitly registered resource for a subtype's model always wins over the base's declaration.
+The base also registers its declared subtypes as a backup. Registration is what gives a direct query its type. So a subtype missing from the map would make `FootballTeam.query()` rows serialize under an auto-derived type. The backup prevents that when an entry is forgotten. It never overrides you. An explicitly registered resource for a subtype's model always takes priority over the base's declaration.
 
 ## Families discovered at runtime
 
 So far the family has been fixed. Football and rugby are known while the code is written, so each subtype gets a model, a resource file, and a config entry.
 
-Some applications cannot know the family upfront, because the types are made by users. A form builder where users define their own field kinds. A CMS where editors invent content types. A tracker where each workspace declares its own item categories. The rows still live in one table with a discriminator column, since a table per kind would need a migration every time a user invents one, but the discriminator's values are data, created at runtime, different in every installation. There is no moment at which a developer can write `football_team_resource.ts`, because nobody knows what the kinds will be.
+Some applications cannot know the family in advance, because the types are made by users. A form builder where users define their own field kinds. A CMS where editors invent content types. A tracker where each workspace declares its own item categories. The rows still live in one table with a discriminator column. A table per kind would need a migration every time a user invents one. But the discriminator's values are data, created at runtime, different in every installation. There is no moment at which a developer can write `football_team_resource.ts`, because nobody knows what the kinds will be.
 
 The declarations still work, because both are functions. Nothing forces `subtypes()` to return classes that exist as files, and nothing forces `resolveResource` to pick from a fixed set. A base resource can build concrete resources on demand, keyed on discriminator values that are themselves user data:
 
@@ -181,11 +181,11 @@ export default class TeamResource extends JsonApiResource<SportsTeam> {
 
 Three details make this work.
 
-- **One class per value, memoized.** The registry caches type strings per class object, and the resolution walk ends when it sees a repeated class, so the same discriminator value must always resolve to the same class. The `Map` provides that identity.
-- **`subtypes()` is consulted on every write**, never captured at boot. The moment a new kind lands in the cache, writes naming its type are accepted. Before any kind exists, the accepted set is empty and every write is a 409.
+- **One class per value, memoized.** The registry caches type strings per class object. The resolution walk ends when it sees a repeated class, so the same discriminator value must always resolve to the same class. The `Map` gives that identity.
+- **`subtypes()` is consulted on every write**, never captured at boot. The moment a new kind enters the cache, writes naming its type are accepted. Before any kind exists, the accepted set is empty and every write is a `409`.
 - **Inheriting from the base resource is safe.** The runtime-built class inherits `resolveResource`, and resolving again returns the same memoized class, which ends the walk. It also inherits `exposeRelationships`, `filters`, and any attribute customization, so the family shares the base's behaviour by default.
 
-How kinds enter the cache is the application's decision, and the choice shows on writes. Filled lazily, as above, a kind's type is only accepted after some row of that kind has been serialized once. Seeded at boot, every known kind is accepted from the first request. Seeding is a preload file that reads the kinds from wherever they are defined, here the distinct discriminator values already in the table:
+How kinds enter the cache is the application's decision, and the choice shows on writes. Filled lazily, as above, a kind's type is only accepted after some row of that kind has been serialized one time. Seeded at boot, every known kind is accepted from the first request. Seeding is a preload file that reads the kinds from wherever they are defined, here the distinct discriminator values already in the table:
 
 ```ts
 // start/team_kinds.ts
@@ -204,7 +204,7 @@ Registered in `adonisrc.ts` so it runs at boot, restricted to the web environmen
 preloads: [{ file: () => import('#start/team_kinds'), environment: ['web'] }]
 ```
 
-The restriction matters. Preloads also run when ace commands boot the app, and on a fresh database the table does not exist until `migration:run` finishes, so a preload that reads it would crash the very command that creates it. Web-only registration keeps the seed out of console commands and tests, where rows are seeded per test anyway.
+The restriction matters. Preloads also run when ace commands boot the app. On a fresh database the table does not exist until `migration:run` finishes. A preload that reads it would then crash the command that creates it. Web-only registration keeps the seed out of console commands and tests, where rows are seeded per test anyway.
 
 A kind created after boot is registered where it is created. The endpoint or service that saves a new kind calls `resourceForSport` as part of the same operation, so the seed covers everything known at boot and the create path covers everything after.
 
@@ -225,11 +225,11 @@ async store({ jsonApi, params }: HttpContext) {
 }
 ```
 
-Reads need nothing special, because every row is named through `resolveResource` regardless of which endpoint served it. Writes lean on two things. Deserializing against an STI base accepts any member of the declared family, and `expectedType` narrows that to the one type the URL names, so a body claiming a different member is a 409. The result carries the validated `type` back, which is also how an endpoint without a type in its URL would decide which discriminator to stamp.
+Reads need nothing special, because every row is named through `resolveResource`, whatever endpoint served it. Writes depend on two things. Deserializing against an STI base accepts any member of the declared family. `expectedType` limits that to the one type the URL names, so a body claiming a different member is a `409`. The result carries the validated `type` back. That is also how an endpoint with no type in its URL would decide which discriminator to set.
 
-The controllers trust `params.type`, so validate it against the known kinds first and 404 the rest. `expectedType` pins the body to the URL, and it accepts whatever string it is given, so an unvalidated URL segment would let a made-up kind straight through to the row.
+The controllers trust `params.type`, so validate it against the known kinds first, and `404` the rest. `expectedType` ties the body to the URL, and it accepts whatever string it is given. An unvalidated URL segment would let a made-up kind through to the row.
 
-None of this shape is prescribed by the package. The cache, the factory, and the seeding are ordinary application code, and the package only ever calls the two declared functions. The example exists to show how much room those two functions leave.
+None of this shape is prescribed by the package. The cache, the factory, and the seeding are ordinary application code. The package only ever calls the two declared functions. The example shows how much room those two functions leave.
 
 ## What documents look like
 
@@ -318,7 +318,7 @@ A type outside the family is a `409` naming every acceptable type. The abstract 
 }
 ```
 
-A claimed type the row's discriminator contradicts is a `404`. The family shares one id space, so any id "exists" for any subtype, and the claimed type has to be checked against the row. Row 2 exists, but it is a rugby team, so `football-teams/2` names a resource that does not exist, and an existence check alone would attach it silently:
+A claimed type that the row's discriminator contradicts is a `404`. The family shares one id space, so any id "exists" for any subtype, and the claimed type has to be checked against the row. Row 2 exists, but it is a rugby team. So `football-teams/2` names a resource that does not exist, and an existence check alone would attach it without warning:
 
 ```jsonc
 // POST /fans/1/relationships/favourites
@@ -338,11 +338,11 @@ A claimed type the row's discriminator contradicts is a `404`. The family shares
 }
 ```
 
-`verifyRelatedExist` performs the discriminator check, which is why the function takes the registry.
+`verifyRelatedExist` does the discriminator check, which is why the function takes the registry.
 
 ## The one place a type cannot be known
 
-Resource linkage for an unloaded belongsTo is normally derived from the bare foreign key, without touching the database. With STI that derivation is impossible, because the discriminator lives on the target row, and the foreign key is just an id. Suppose a stadium belongs to a team:
+Resource linkage for an unloaded belongsTo normally comes from the bare foreign key, without a database query. With STI that is impossible, because the discriminator is on the target row, and the foreign key is only an id. Suppose a stadium belongs to a team:
 
 ```ts
 export default class Stadium extends BaseModel {
@@ -353,7 +353,7 @@ export default class Stadium extends BaseModel {
 }
 ```
 
-Fetching a stadium on its own leaves `team` unloaded. If the serializer guessed from the foreign key anyway, the id would come from `team_id` and the only type it could name is the relation's declared target, the base:
+Fetching a stadium on its own leaves `team` unloaded. Suppose the serializer guessed from the foreign key. The id comes from `team_id`, and the only type it can name is the relation's declared target, the base:
 
 ```jsonc
 // GET /stadiums/9, as it would look if the guess were made
@@ -379,10 +379,10 @@ Fetching a stadium on its own leaves `team` unloaded. If the serializer guessed 
 Row 1 is a football team, so the true identity of this resource is `football-teams/1`, and that is what every other document calls it. This one calls it `sports-teams/1`. That one guess causes three problems.
 
 - The identity never resolves. No endpoint serves `sports-teams`, so nothing a client does with `sports-teams/1` produces a resource. Following the `related` link works, but it returns `football-teams/1`, which does not match the linkage that pointed at it.
-- It forks client caches. A cache keys resources by `type` + `id`, so when the same row arrives through any other path, a favourites list, a direct fetch, it lands as `football-teams/1` and the cache now holds two records for one row, the abstract one empty forever.
-- It dead-ends type-keyed client logic. Code that routes from linkage, opening a team page for `football-teams` or `rugby-teams`, has no branch for `sports-teams`.
+- It forks client caches. A cache keys resources by `type` + `id`. When the same row arrives through any other path, a favourites list or a direct fetch, it arrives as `football-teams/1`. The cache now holds two records for one row, and the abstract one is empty forever.
+- It breaks type-keyed client logic. Code that routes from linkage, opening a team page for `football-teams` or `rugby-teams`, has no branch for `sports-teams`.
 
-In a compound document the same guess also violates the spec's full-linkage rule, since the row can sit in `included` under its concrete type while the guessed identifier dangles.
+In a compound document the same guess also violates the spec's full-linkage rule. The row can be in `included` under its concrete type while the guessed identifier points at nothing.
 
 So the package refuses to guess. An unloaded belongsTo targeting an STI base emits the relationship member with **no `data`**, keeping its `links`:
 
@@ -395,11 +395,11 @@ So the package refuses to guess. An unloaded belongsTo targeting an STI base emi
 }
 ```
 
-A client that needs the target follows the `related` link and gets the concrete type from the loaded row. Loading the relation (or including it) always yields full concrete linkage. Relations targeting a concrete subclass, or any non-STI model, keep FK-derived linkage exactly as before.
+A client that needs the target follows the `related` link and gets the concrete type from the loaded row. Loading the relation, or including it, always gives full concrete linkage. Relations targeting a concrete subclass, or any non-STI model, keep FK-derived linkage exactly as before.
 
 ## Custom type schemes
 
-Type derivation lives in one overridable method on the resource, consulted for models and rows alike:
+Type derivation is one overridable method on the resource, used for models and rows alike:
 
 ```ts
 static typeName(): string {
@@ -407,26 +407,26 @@ static typeName(): string {
 }
 ```
 
-Override it on a resource to compute types under a different scheme; the registry honours it everywhere, including subtype resolution.
+Override it on a resource to compute types under a different scheme. The registry uses it everywhere, including subtype resolution.
 
 ## Should you design your schema this way?
 
-Polymorphic schemas have a poor reputation, and the criticism is fair. A relational schema is supposed to declare what the data is and have the database enforce it, and every polymorphic shape gives some of that up. A morph column pair cannot be a real foreign key, an STI table cannot mark a subtype's column `NOT NULL`, and either way rules the database once enforced become application conventions that every program touching the database has to honour by hand. Critics read polymorphism as an ORM convenience imposed on a schema.
+Polymorphic schemas have a poor reputation, and the criticism is fair. A relational schema is supposed to declare what the data is and have the database enforce it. Every polymorphic shape gives up some of that. A morph column pair cannot be a real foreign key. An STI table cannot mark a subtype's column `NOT NULL`. Either way, rules the database once enforced become application conventions, and every program that uses the database has to apply them by hand. Critics read polymorphism as an ORM convenience imposed on a schema.
 
-The criticism does not make the need go away. Favourites lists, feeds, and attachments are mixed collections in reality, and a design that refuses polymorphism pays elsewhere, with a pivot table and an endpoint per type, union queries behind every mixed list, and the same feature built several times over. Neither side of the trade is free, so the question is which set of costs fits your data.
+The criticism does not make the need go away. Favourites lists, feeds, and attachments are mixed collections in reality. A design that refuses polymorphism pays elsewhere: a pivot table and an endpoint per type, a union query for every mixed list, and the same feature built several times. Neither side of the trade is free, so the question is which set of costs fits your data.
 
-Reach for STI when the types are **variations of one thing**. They share most of their columns, they appear together in the same lists and relationships, and things point at "any of them". Teams that are football, rugby, or cricket teams. Attachments that are images or videos. If you need one relationship that holds several of these types, STI fits.
+Choose STI when the types are **variations of one thing**. They share most of their columns. They appear together in the same lists and relationships. Other rows point at "any of them". Teams that are football, rugby, or cricket teams. Attachments that are images or videos. If you need one relationship that holds several of these types, STI fits.
 
-STI is also the only workable shape when **the types themselves are user data**. If users define their own kinds at runtime, there is no way to create a table or a model per kind upfront, while a discriminator column absorbs new values without a migration. See [Families discovered at runtime](#families-discovered-at-runtime) for how the resource side keeps up.
+STI is also the only workable shape when **the types themselves are user data**. If users define their own kinds at runtime, there is no way to create a table or a model per kind in advance. A discriminator column accepts new values without a migration. See [Families discovered at runtime](#families-discovered-at-runtime) for how the resource side keeps pace.
 
 The costs are real, and they are schema costs, so they outlive any library choice:
 
-- **Sparse columns.** Every subtype's columns exist on every row. A column only rugby teams use is `NULL` on every football team. The table gets wide, and `NOT NULL` stops being expressible for subtype-specific columns, the database cannot say "scrum_wins is required, but only for rugby teams" without check constraints keyed on the discriminator.
-- **The schema does not enforce the discriminator.** Nothing stops a query from treating a rugby row as a football team; the id space is shared, so any id "exists" for any subtype. Discipline has to live in the application layer, which is why this package verifies claimed types against the discriminator on writes.
+- **Sparse columns.** Every subtype's columns exist on every row. A column only rugby teams use is `NULL` on every football team. The table gets wide, and `NOT NULL` cannot be expressed for subtype-specific columns. The database cannot say "scrum_wins is required, but only for rugby teams" without check constraints keyed on the discriminator.
+- **The schema does not enforce the discriminator.** Nothing stops a query from treating a rugby row as a football team. The id space is shared, so any id "exists" for any subtype. The discipline has to be in the application layer, which is why this package compares claimed types against the discriminator on writes.
 - **Everything shares the table.** Migrations, indexes, and locks affect the whole family. A busy subtype's traffic is every subtype's traffic.
-- **One relation cannot span the split.** If you later move a subtype out to its own table, every relation targeting the base breaks.
+- **One relation cannot cross the split.** If you later move a subtype out to its own table, every relation targeting the base breaks.
 
-If the types share little beyond a name, prefer separate tables and separate endpoints and no polymorphism at all. A relationship that must span genuinely different tables needs the type + id column pair, with the trade-offs above.
+If the types share little beyond a name, prefer separate tables, separate endpoints, and no polymorphism at all. A relationship that must cross genuinely different tables needs the type + id column pair, with the trade-offs above.
 
 ---
 

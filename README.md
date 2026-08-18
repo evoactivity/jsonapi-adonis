@@ -2,7 +2,7 @@
 
 # Adonis JSON:API
 
-Serve a spec-compliant API from your existing Lucid models with a few lines per endpoint. Includes, sparse fieldsets, sorting, filtering, pagination, error documents, content negotiation and full write support are all handled for you.
+Serve a spec-compliant JSON:API from your Lucid models. Each endpoint needs a few lines. The package does includes, sparse fieldsets, sorting, filtering, pagination, error documents, content negotiation, and full write support for you.
 
 ```ts
 // A complete JSON:API endpoint:
@@ -12,7 +12,7 @@ async index({ jsonApi }: HttpContext) {
 }
 ```
 
-New to JSON:API itself? Start with [What is JSON:API?](./docs/what-is-jsonapi.md)
+If you are new to JSON:API, start with [What is JSON:API?](./docs/what-is-jsonapi.md).
 
 ## Installation
 
@@ -20,19 +20,19 @@ New to JSON:API itself? Start with [What is JSON:API?](./docs/what-is-jsonapi.md
 node ace add @evoactivity/jsonapi-adonis
 ```
 
-This installs the package and configures it: it creates `config/jsonapi.ts`, then registers the provider, the `jsonApi` named middleware and the generator commands.
+This command installs the package and configures it. It creates `config/jsonapi.ts`. Then it registers the provider, the `jsonApi` named middleware, and the generator commands.
 
-**Requirements:** AdonisJS v7 (`@adonisjs/core` ^7), Lucid v22 (`@adonisjs/lucid` ^22).
+**Requirements.** AdonisJS v7 (`@adonisjs/core` ^7) and Lucid v22 (`@adonisjs/lucid` ^22).
 
 ## Quick start
 
-**1. Generate a resource and controllers** for one of your models:
+**1. Make a resource and controllers** for one of your models:
 
 ```sh
 node ace make:jsonapi:resource article --relationships --routes
 ```
 
-This creates `app/resources/article_resource.ts` and the controllers, and registers the routes. You can also write them by hand, see the [reference](./docs/reference.md). Register the resource in `config/jsonapi.ts`:
+This creates `app/resources/article_resource.ts` and the controllers. It also registers the routes. You can write them by hand instead. See the [reference](./docs/reference.md). Register the resource in `config/jsonapi.ts`:
 
 ```ts
 export default defineConfig({
@@ -41,17 +41,17 @@ export default defineConfig({
 ```
 
 > [!NOTE]
-> Resource classes are optional. Every model serializes automatically with its type, attributes and relationships derived from Lucid metadata, so a controller alone works fine: `node ace make:jsonapi:controller article` generates just the controllers, and there's nothing to register in the config. Write a resource class when you want to customize the output, see [Customizing a resource](./docs/reading-data.md#customizing-a-resource).
+> Resource classes are optional. Every model serializes automatically. Its type, attributes, and relationships come from Lucid metadata, so a controller alone is enough. `node ace make:jsonapi:controller article` makes only the controllers, and the config needs no entry for them. You write a resource class only to change the output. See [Customizing a resource](./docs/reading-data.md#customizing-a-resource).
 
-**2. That's it. Make a request:**
+**2. Make a request.**
 
 ```
 GET /api/v1/articles/1?include=author,tags
 ```
 
-You get a complete JSON:API document: the article as primary `data`, the author and tags in `included` (deduplicated), relationship linkage, `self` and `related` links, and the `application/vnd.api+json` content type. The `?include=` paths were validated and preloaded in one pass. Unknown paths get a 400, as the spec requires, and there are no N+1 queries.
+You get a complete JSON:API document. It has the article as primary `data`. It has the author and tags in `included`, with duplicates removed. It has relationship linkage, `self` and `related` links, and the `application/vnd.api+json` content type. The package validated the `?include=` paths and preloaded them in one pass. Unknown paths get a `400`, as the spec requires. There are no N+1 queries.
 
-The generated controller is plain AdonisJS. `jsonApi.query(Article)` is literally `Article.query()` with the request's `include`, `sort` and `filter` parameters applied, and you can chain `.where()`, scopes and `.paginate()` as usual:
+The generated controller is plain AdonisJS. `jsonApi.query(Article)` is `Article.query()` with the request's `include`, `sort`, and `filter` parameters applied. You can chain `.where()`, scopes, and `.paginate()` as usual:
 
 ```ts
 export default class ArticlesController {
@@ -74,7 +74,7 @@ export default class ArticlesController {
 }
 ```
 
-**3. Render errors as JSON:API documents.** One branch in your exception handler:
+**3. Render errors as JSON:API documents.** Add one branch to your exception handler:
 
 ```ts
 // app/exceptions/handler.ts
@@ -88,7 +88,7 @@ async handle(error: unknown, ctx: HttpContext) {
 }
 ```
 
-Models without a resource class serialize automatically, with the type, attributes and relationships derived from Lucid metadata. You only write resource classes to customize.
+Models without a resource class serialize automatically. Their type, attributes, and relationships come from Lucid metadata. You write resource classes only to change the output.
 
 ## Documentation
 
@@ -105,7 +105,7 @@ Models without a resource class serialize automatically, with the type, attribut
 
 ## The example app
 
-[`examples/blog`](./examples/blog) is a complete AdonisJS application (articles, comments, tags, users) exercising every feature. The same resources are mounted under `/api/v1` and `/api/v2` to demonstrate versioned links.
+[`examples/blog`](./examples/blog) is a complete AdonisJS application with articles, comments, tags, and users. It uses every feature. The same resources are mounted under `/api/v1` and `/api/v2` to show versioned links.
 
 ```sh
 pnpm install

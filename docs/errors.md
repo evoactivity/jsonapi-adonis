@@ -2,7 +2,7 @@
 
 ## What an error document looks like
 
-A JSON:API error response has no `data`. It carries an `errors` array instead, with one error object per problem, and is served as `application/vnd.api+json` like everything else. This is a real response from the example app, a validation failure on `POST /api/v1/articles`:
+A JSON:API error response has no `data`. It carries an `errors` array instead, with one error object per problem. It is served as `application/vnd.api+json`, like everything else. This is a real response from the example app, a validation failure on `POST /api/v1/articles`:
 
 ```json
 HTTP/1.1 422 Unprocessable Content
@@ -42,7 +42,7 @@ Each error object can carry:
 | `source.header`    | The header at fault, for content negotiation failures                 |
 | `meta`             | Anything else you want to attach                                      |
 
-Query-parameter problems point at the parameter instead of the body. Asking for `?include=nonsense` returns:
+Query-parameter problems point at the parameter instead of the body. A request for `?include=nonsense` returns:
 
 ```json
 {
@@ -74,7 +74,7 @@ async handle(error: unknown, ctx: HttpContext) {
 }
 ```
 
-`handlesErrors()` detects JSON:API requests automatically: either the matched route was registered via `router.jsonApiResource()`, or the client is speaking the JSON:API media type in its `Accept` or `Content-Type` header. When you'd rather decide yourself (say, everything under a URL prefix, including unmatched 404s), set the predicate in `config/jsonapi.ts`:
+`handlesErrors()` detects JSON:API requests automatically. Either the matched route was registered via `router.jsonApiResource()`, or the client sends the JSON:API media type in its `Accept` or `Content-Type` header. If you want to decide yourself, for example everything under a URL prefix including unmatched 404s, set the predicate in `config/jsonapi.ts`:
 
 ```ts
 export default defineConfig({
@@ -93,15 +93,15 @@ What renders how:
 
 The `jsonApi` middleware implements the spec's media type rules:
 
-- A JSON:API `Content-Type` carrying media type parameters gets a `415`, and an `Accept` header whose JSON:API offers are all parameterized gets a `406`.
-- `profile` parameters always pass, since the spec lets servers ignore unrecognized profiles.
-- `ext` parameters are honored as the contract they are: an extension this package doesn't support is rejected with `415`/`406` rather than silently processed as a plain document. No extensions are supported yet. Atomic Operations will be the first.
+- A JSON:API `Content-Type` with media type parameters gets a `415`. An `Accept` header whose JSON:API offers are all parameterized gets a `406`.
+- `profile` parameters are always accepted, because the spec lets servers ignore unrecognized profiles.
+- `ext` parameters are treated as a contract. An extension this package does not handle is rejected with `415` or `406`, not processed without warning as a plain document. No extensions work yet. Atomic Operations will be the first.
 
 All responses are served as `application/vnd.api+json`.
 
 ## Strict query parameters
 
-One more strict-input rule lives in the query-string parser. The spec reserves simple lowercase parameter names for itself, which makes an unrecognized all-lowercase parameter (`?foo=bar`) a `400`. Application-specific parameters must contain a non-lowercase character (`?cacheBust=1`, `?api_key=…`) and are ignored by the package.
+One more strict-input rule is in the query-string parser. The spec reserves simple lowercase parameter names for itself, so an unrecognized all-lowercase parameter (`?foo=bar`) is a `400`. Application-specific parameters must contain a non-lowercase character (`?cacheBust=1`, `?api_key=…`), and the package ignores them.
 
 ---
 

@@ -1,6 +1,6 @@
 # Writing data
 
-Creating, updating and deleting resources from JSON:API request documents, and the relationship endpoints.
+This page covers creating, updating, and deleting resources from JSON:API request documents. It also covers the relationship endpoints.
 
 ## Resource writes
 
@@ -22,7 +22,7 @@ Content-Type: application/vnd.api+json
 }
 ```
 
-`jsonApi.deserialize(Model)` unpacks that into Lucid-friendly shapes:
+`jsonApi.deserialize(Model)` turns that into shapes Lucid can use:
 
 ```ts
 async store({ jsonApi }: HttpContext) {
@@ -51,18 +51,18 @@ The deserializer enforces the spec's error semantics for you:
 | Situation                                                                   | Response      |
 | --------------------------------------------------------------------------- | ------------- |
 | Malformed document (missing `data`, bad identifiers, unknown relationship…) | `400`         |
-| `data.type` doesn't match the endpoint                                      | `409`         |
-| `data.id` missing on update, or doesn't match the URL                       | `400` / `409` |
+| `data.type` does not match the endpoint                                     | `409`         |
+| `data.id` missing on update, or does not match the URL                      | `400` / `409` |
 | Client sends an `id` on creation (unless `allowClientIds: true`)            | `403`         |
-| A referenced related resource doesn't exist                                 | `404`         |
+| A referenced related resource does not exist                                | `404`         |
 
-Attribute names are mapped back from their serialized names to model property names. Unknown attributes are dropped, and your validator remains the gatekeeper.
+Attribute names are mapped back from their serialized names to model property names. Unknown attributes are dropped, and your validator stays in control of what is accepted.
 
-A relation hidden by [`exposeRelationships`](./reading-data.md#static-exposerelationships) counts as unknown here. A `relationships` member naming one is rejected with the same `400`, so hiding a relation closes the resource-body write path too.
+A relation hidden by [`exposeRelationships`](./reading-data.md#static-exposerelationships) counts as unknown here. A `relationships` member naming one is rejected with the same `400`, so hiding a relation also blocks the resource-body write path.
 
 ## Relationship endpoints
 
-The spec defines URLs for reading and editing a relationship itself, without touching the resources on either end. Editing linkage through these URLs sends deltas rather than snapshots, which protects concurrent editors from overwriting each other; the [links guide](./links.md) walks through a lost-update example. `jsonApiResource` registers the endpoints when you provide a `relationships` controller:
+The spec defines URLs for reading and editing a relationship itself, without touching the resources on either end. Edits through these URLs send deltas, not snapshots. Deltas protect concurrent editors from overwriting each other. The [links guide](./links.md) shows a lost-update example. `jsonApiResource` registers the endpoints when you give it a `relationships` controller:
 
 | Route                                   | Meaning                                |
 | --------------------------------------- | -------------------------------------- |
@@ -88,11 +88,11 @@ export default class ArticleRelationshipsController {
 }
 ```
 
-To-one relationships accept `PATCH` only (a `405` otherwise). For `hasMany`, full replacement and removal are rejected with `403`. The spec explicitly allows a server to refuse those, and the natural write path for a hasMany is the child's own belongsTo. `manyToMany` supports everything. `hasManyThrough` relationships are derived, and all writes through them are rejected.
+To-one relationships accept `PATCH` only (a `405` otherwise). For `hasMany`, full replacement and removal are rejected with `403`. The spec explicitly lets a server refuse those, and the normal write path for a hasMany is the child's own belongsTo. `manyToMany` accepts all of them. `hasManyThrough` relationships are derived, and all writes through them are rejected.
 
-All five routes respect the resource's [`exposeRelationships`](./reading-data.md#static-exposerelationships). A relation the resource does not expose returns `404` here as well, so registering this controller cannot reopen something the resource hides.
+All five routes obey the resource's [`exposeRelationships`](./reading-data.md#static-exposerelationships). A relation the resource does not show returns `404` here too, so registering this controller cannot re-open a relation the resource hides.
 
-Register a subset of these routes with the `relationshipsOnly` option; see [Selecting routes](./reference.md#selecting-routes) in the reference.
+Register a subset of these routes with the `relationshipsOnly` option. See [Selecting routes](./reference.md#selecting-routes) in the reference.
 
 ---
 

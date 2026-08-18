@@ -1,8 +1,8 @@
 # Blog example
 
-A complete AdonisJS application demonstrating [@evoactivity/jsonapi-adonis](../../README.md): articles, comments, tags and users, served as a JSON:API under both `/api/v1` and `/api/v2` (to show versioned link generation).
+A complete AdonisJS application that shows [@evoactivity/jsonapi-adonis](../../README.md). It has articles, comments, tags, and users, served as a JSON:API under both `/api/v1` and `/api/v2` to show versioned link generation.
 
-Built from the official `api` starter kit; the JSON:API integration was added with `node ace configure @evoactivity/jsonapi-adonis`.
+It is built from the official `api` starter kit. The JSON:API integration was added with `node ace configure @evoactivity/jsonapi-adonis`.
 
 ## Run it
 
@@ -15,7 +15,7 @@ node ace migration:run
 node ace serve --watch
 ```
 
-Seed the demo data: two authors, three articles with spread-out publication dates, tags and comments, shaped so every filter visibly changes the result.
+Seed the demo data: two authors, three articles with spread-out publication dates, tags, and comments. The data is shaped so every filter clearly changes the result.
 
 ```sh
 node ace db:seed
@@ -91,9 +91,9 @@ curl 'localhost:3333/api/v1/articles/9999'                 # 404 errors document
 | `app/exceptions/handler.ts`                           | JSON:API error documents for API routes               |
 | `tests/functional/jsonapi_*.spec.ts`                  | The full compliance test suite                        |
 
-## Generate a new resource
+## Make a new resource
 
-The package ships scaffolding commands (registered in `adonisrc.ts`):
+The package gives scaffolding commands (registered in `adonisrc.ts`):
 
 ```sh
 # resource class + both controllers, routes appended to start/routes.ts
