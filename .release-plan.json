@@ -2,17 +2,21 @@
   "solution": {
     "@evoactivity/jsonapi-adonis": {
       "impact": "minor",
-      "oldVersion": "0.4.0",
-      "newVersion": "0.5.0",
+      "oldVersion": "0.5.0",
+      "newVersion": "0.6.0",
       "tagName": "latest",
       "constraints": [
         {
           "impact": "minor",
           "reason": "Appears in changelog section :rocket: Enhancement"
+        },
+        {
+          "impact": "patch",
+          "reason": "Appears in changelog section :memo: Documentation"
         }
       ],
       "pkgJSONPath": "./package.json"
     }
   },
-  "description": "## Release (2026-08-17)\n\n* @evoactivity/jsonapi-adonis 0.5.0 (minor)\n\n#### :rocket: Enhancement\n* `@evoactivity/jsonapi-adonis`\n  * [#18](https://github.com/evoactivity/jsonapi-adonis/pull/18) Pass the request context to filter handlers ([@evoactivity](https://github.com/evoactivity))\n\n#### Committers: 1\n- Liam ([@evoactivity](https://github.com/evoactivity))\n"
+  "description": "## Release (2026-08-18)\n\n* @evoactivity/jsonapi-adonis 0.6.0 (minor)\n\n#### :rocket: Enhancement\n* `@evoactivity/jsonapi-adonis`\n  * [#20](https://github.com/evoactivity/jsonapi-adonis/pull/20) Make filter.custom generic over the model ([@evoactivity](https://github.com/evoactivity))\n\n#### :memo: Documentation\n* `@evoactivity/jsonapi-adonis`\n  * [#22](https://github.com/evoactivity/jsonapi-adonis/pull/22) docs: Improve clarity and consistency across documentation ([@evoactivity](https://github.com/evoactivity))\n\n#### Committers: 1\n- Liam ([@evoactivity](https://github.com/evoactivity))\n"
 }
