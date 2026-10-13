@@ -2,17 +2,25 @@
   "solution": {
     "@evoactivity/jsonapi-adonis": {
       "impact": "minor",
-      "oldVersion": "0.4.0",
-      "newVersion": "0.5.0",
+      "oldVersion": "0.5.0",
+      "newVersion": "0.6.0",
       "tagName": "latest",
       "constraints": [
         {
           "impact": "minor",
           "reason": "Appears in changelog section :rocket: Enhancement"
+        },
+        {
+          "impact": "patch",
+          "reason": "Appears in changelog section :memo: Documentation"
+        },
+        {
+          "impact": "patch",
+          "reason": "Appears in changelog section :house: Internal"
         }
       ],
       "pkgJSONPath": "./package.json"
     }
   },
-  "description": "## Release (2026-08-17)\n\n* @evoactivity/jsonapi-adonis 0.5.0 (minor)\n\n#### :rocket: Enhancement\n* `@evoactivity/jsonapi-adonis`\n  * [#18](https://github.com/evoactivity/jsonapi-adonis/pull/18) Pass the request context to filter handlers ([@evoactivity](https://github.com/evoactivity))\n\n#### Committers: 1\n- Liam ([@evoactivity](https://github.com/evoactivity))\n"
+  "description": "## Release (2026-10-13)\n\n* @evoactivity/jsonapi-adonis 0.6.0 (minor)\n\n#### :rocket: Enhancement\n* `@evoactivity/jsonapi-adonis`\n  * [#23](https://github.com/evoactivity/jsonapi-adonis/pull/23) Return chainable resource routes from jsonApiResource ([@evoactivity](https://github.com/evoactivity))\n  * [#20](https://github.com/evoactivity/jsonapi-adonis/pull/20) Make filter.custom generic over the model ([@evoactivity](https://github.com/evoactivity))\n\n#### :memo: Documentation\n* `@evoactivity/jsonapi-adonis`\n  * [#22](https://github.com/evoactivity/jsonapi-adonis/pull/22) docs: Improve clarity and consistency across documentation ([@evoactivity](https://github.com/evoactivity))\n\n#### :house: Internal\n* `@evoactivity/jsonapi-adonis`\n  * [#24](https://github.com/evoactivity/jsonapi-adonis/pull/24) Hold CI's Node 24 at 24.19 ([@evoactivity](https://github.com/evoactivity))\n\n#### Committers: 1\n- Liam ([@evoactivity](https://github.com/evoactivity))\n"
 }
