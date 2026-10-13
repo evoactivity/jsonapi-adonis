@@ -1,5 +1,5 @@
 import type { ApplicationService } from '@adonisjs/core/types'
-import { HttpContext } from '@adonisjs/core/http'
+import { HttpContext, type Route } from '@adonisjs/core/http'
 import { ModelQueryBuilder } from '@adonisjs/lucid/orm'
 import { JsonApiRegistry } from '../src/registry.ts'
 import { JsonApiRequestContext } from '../src/context.ts'
@@ -9,7 +9,11 @@ import {
   registerJsonApiResource,
   type JsonApiResourceControllers,
   type JsonApiResourceOptions,
+  type JsonApiResourceRoutes,
 } from '../src/routes.ts'
+
+/** Whatever an AdonisJS route's own use() accepts. */
+type RouteMiddleware = Parameters<Route['use']>[0]
 
 /**
  * Registers the JSON:API integration:
@@ -50,7 +54,7 @@ export default class JsonApiProvider {
       controllers: JsonApiResourceControllers,
       options?: JsonApiResourceOptions
     ) {
-      registerJsonApiResource(this, type, controllers, options)
+      return registerJsonApiResource<RouteMiddleware>(this, type, controllers, options)
     }
 
     /**
@@ -100,7 +104,7 @@ declare module '@adonisjs/core/types' {
       type: string,
       controllers: JsonApiResourceControllers,
       options?: JsonApiResourceOptions
-    ): void
+    ): JsonApiResourceRoutes<RouteMiddleware>
   }
 }
 

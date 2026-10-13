@@ -100,6 +100,28 @@ router.jsonApiResource(
 )
 ```
 
+## Route middleware
+
+`router.jsonApiResource()` returns the routes it registered. Use them to attach middleware to some actions only. The returned object works like the AdonisJS `RouteResource.use()`:
+
+- `use(actions, middleware)` attaches middleware to resource routes. The tokens are the same as for `only`.
+- `useRelationships(actions, middleware)` attaches middleware to relationship routes. The tokens are the same as for `relationshipsOnly`.
+- Give `'*'` instead of a list to attach to every route on that axis.
+
+Each call returns the same object, so you can chain calls. A token for a route that did not register (because `only` or `relationshipsOnly` left it out) does nothing.
+
+```ts
+router
+  .jsonApiResource('articles', {
+    resource: () => import('#controllers/articles_controller'),
+    relationships: () => import('#controllers/article_relationships_controller'),
+  })
+  .use(['store', 'update', 'destroy'], middleware.auth())
+  .useRelationships(['replace', 'add', 'remove'], middleware.auth())
+```
+
+This is route middleware. It runs after the middleware of the groups that contain the resource.
+
 ## Roadmap
 
 - **[Atomic Operations](https://jsonapi.org/ext/atomic/)**, the official extension for several writes in one request, applied in one transaction. Either every operation succeeds or none do. This is the planned home for the bulk-write cases a single endpoint handles awkwardly, like clearing or re-parenting a `hasMany` (a `403` today), which break down cleanly into per-child operations inside one atomic request.
