@@ -14,19 +14,30 @@ import type { JsonApiResourceOptions } from '../../src/routes.ts'
 
 /**
  * A stand-in for the AdonisJS router that records the name of every route
- * registered through it. Only the four verbs registerJsonApiResource uses
- * are implemented, each returning the `.as()` recorder.
+ * registered through it, and the middleware attached to each route by
+ * name. Only the four verbs registerJsonApiResource uses are implemented.
  */
 function recordingRouter() {
   const names: string[] = []
-  const record = () => ({
-    as(name: string) {
-      names.push(name)
-      return {}
-    },
-  })
+  const middleware = new Map<string, string[]>()
+  const record = () => {
+    let routeName = ''
+    const route = {
+      as(name: string) {
+        routeName = name
+        names.push(name)
+        return route
+      },
+      use(entry: string) {
+        middleware.set(routeName, [...(middleware.get(routeName) ?? []), entry])
+        return route
+      },
+    }
+    return route
+  }
   return {
     names,
+    middleware,
     get: record,
     post: record,
     patch: record,
@@ -119,5 +130,73 @@ test.group('registerJsonApiResource route selection', () => {
       'articles.relationships.remove',
       'articles.related',
     ])
+  })
+})
+
+test.group('registerJsonApiResource route middleware', () => {
+  function middlewareOn(router: ReturnType<typeof recordingRouter>) {
+    return Object.fromEntries(router.middleware)
+  }
+
+  test('use attaches middleware to the listed resource routes only', ({ assert }) => {
+    const router = recordingRouter()
+    registerJsonApiResource<string>(router, 'articles', controllers)
+      .use(['show'], 'read')
+      .use(['store', 'update'], 'write')
+
+    assert.deepEqual(middlewareOn(router), {
+      'articles.show': ['read'],
+      'articles.store': ['write'],
+      'articles.update': ['write'],
+    })
+  })
+
+  test('use with * reaches every resource route and no relationship route', ({ assert }) => {
+    const router = recordingRouter()
+    registerJsonApiResource<string>(router, 'articles', controllers).use('*', 'auth')
+
+    assert.deepEqual(Object.keys(middlewareOn(router)), [
+      'articles.index',
+      'articles.store',
+      'articles.show',
+      'articles.update',
+      'articles.destroy',
+    ])
+  })
+
+  test('useRelationships attaches to relationship routes, keeping show apart from the resource show', ({
+    assert,
+  }) => {
+    const router = recordingRouter()
+    registerJsonApiResource<string>(router, 'articles', controllers)
+      .use(['show'], 'resource')
+      .useRelationships(['show', 'replace'], 'relationship')
+
+    assert.deepEqual(middlewareOn(router), {
+      'articles.show': ['resource'],
+      'articles.relationships.show': ['relationship'],
+      'articles.relationships.replace': ['relationship'],
+    })
+  })
+
+  test('naming an action that was not registered does nothing', ({ assert }) => {
+    const router = recordingRouter()
+    registerJsonApiResource<string>(router, 'articles', controllers, {
+      only: ['index'],
+      relationshipsOnly: ['show'],
+    })
+      .use(['destroy'], 'never')
+      .useRelationships(['remove'], 'never')
+
+    assert.deepEqual(middlewareOn(router), {})
+  })
+
+  test('middleware attached in several calls keeps its order on a route', ({ assert }) => {
+    const router = recordingRouter()
+    registerJsonApiResource<string>(router, 'articles', controllers)
+      .use('*', 'first')
+      .use(['show'], 'second')
+
+    assert.deepEqual(router.middleware.get('articles.show'), ['first', 'second'])
   })
 })

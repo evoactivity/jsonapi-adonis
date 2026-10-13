@@ -26,6 +26,7 @@ export {
 export { updateRelationship, fetchLinkage, type RelationshipAction } from './relationships.ts'
 export {
   registerJsonApiResource,
+  JsonApiResourceRoutes,
   type JsonApiResourceControllers,
   type JsonApiResourceOptions,
 } from './routes.ts'
