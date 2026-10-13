@@ -14,7 +14,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [22, 24]
+        # Node 24 is held at 24.19 because on 24.21 ace refuses to load
+        # the example app's commands with "Invalid URL". 24.19 and 25
+        # load them. Move back to 24 once a later 24 release passes.
+        node-version: [22, '24.19']
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
